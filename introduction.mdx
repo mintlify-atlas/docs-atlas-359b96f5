@@ -1,0 +1,76 @@
+---
+title: Introduction to C.A.R. 911
+description: Learn about C.A.R. 911, a comprehensive 911 resource management system for coordinating emergency response operations
+---
+
+## What is C.A.R. 911?
+
+C.A.R. 911 (Control y Administración de Recursos 911) is a comprehensive resource management system designed for 911 emergency services. The platform enables command centers to coordinate, track, and manage emergency response resources in real-time.
+
+## Purpose
+
+C.A.R. 911 serves as the central hub for managing critical emergency response operations. The system provides command and control centers (CECOCO) with the tools needed to:
+
+- Monitor and dispatch emergency resources efficiently
+- Track police fleet and mobile units in real-time
+- Manage surveillance camera networks
+- Coordinate multiple dependencies and departments
+- Generate comprehensive operational reports
+
+## Key capabilities
+
+### Real-time command and control
+
+The CECOCO module provides live map visualization of all mobile units, allowing dispatchers to monitor resource positions and status in real-time. You can track which units are active, idle, or responding to incidents.
+
+### Resource management
+
+Manage your entire emergency response infrastructure from a single platform:
+
+- **Police fleet tracking**: Monitor vehicles, maintenance schedules, and operational status
+- **Camera networks**: Oversee surveillance camera locations and functionality
+- **Personnel**: Track user roles, permissions, and assignments
+- **Dependencies**: Organize and coordinate multiple departments and agencies
+
+### Advanced search and reporting
+
+The system includes powerful search capabilities and automated report generation:
+
+- Export data to Excel for analysis
+- Generate Word documents with operational summaries
+- Access historical records and audit trails
+- Perform advanced queries across all resources
+
+### Permission-based access control
+
+Built on Laravel with Spatie Permission integration, C.A.R. 911 provides granular role-based access control. You can define specific permissions for viewing, creating, editing, and deleting resources across different user roles.
+
+<Note>
+C.A.R. 911 is built on Laravel 8 and follows modern PHP development practices, ensuring reliability and maintainability for mission-critical emergency operations.
+</Note>
+
+## System architecture
+
+The application is structured around three core layers:
+
+- **Models** (`app/Models`): Define system entities including users, vehicles, cameras, and dependencies
+- **Controllers** (`app/Http/Controllers`): Handle business logic for API endpoints and web routes
+- **Routes** (`routes/api.php`): Map HTTP requests to controller actions
+
+This separation ensures the codebase remains maintainable as your emergency management needs evolve.
+
+## Next steps
+
+<Steps>
+  <Step title="Install C.A.R. 911">
+    Set up PHP, Composer, and MySQL, then install the application dependencies.
+  </Step>
+  
+  <Step title="Configure your environment">
+    Set up database connections, application keys, and environment-specific settings.
+  </Step>
+  
+  <Step title="Run migrations">
+    Initialize the database schema and seed initial data.
+  </Step>
+</Steps>

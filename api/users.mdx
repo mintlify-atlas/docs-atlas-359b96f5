@@ -1,0 +1,455 @@
+---
+title: Users API
+description: Manage user accounts, roles, permissions, and authentication
+---
+
+## Overview
+
+The Users API manages user accounts for the C.A.R. 911 system. It handles user creation, updates, role assignments, profile management, and theme preferences. The system uses Spatie Permission package for role-based access control.
+
+## Endpoints
+
+### List Users
+
+Retrieve a paginated list of users.
+
+```http
+GET /usuarios
+```
+
+<ParamField query="page" type="integer" default="1">
+  Page number (100 items per page)
+</ParamField>
+
+**Response**
+
+<ResponseField name="usuarios" type="array">
+  Array of user objects
+  
+  <Expandable title="User Object">
+    <ResponseField name="id" type="integer">
+      User ID
+    </ResponseField>
+    
+    <ResponseField name="name" type="string" required>
+      User first name
+    </ResponseField>
+    
+    <ResponseField name="apellido" type="string" required>
+      User last name
+    </ResponseField>
+    
+    <ResponseField name="lp" type="string" required>
+      LP number (unique identifier for police personnel)
+    </ResponseField>
+    
+    <ResponseField name="dni" type="string" required>
+      National ID number (DNI)
+    </ResponseField>
+    
+    <ResponseField name="email" type="string" required>
+      Email address (must be unique)
+    </ResponseField>
+    
+    <ResponseField name="photo" type="string">
+      Profile photo path
+    </ResponseField>
+    
+    <ResponseField name="theme" type="string">
+      User theme preference: light or dark
+    </ResponseField>
+    
+    <ResponseField name="created_at" type="datetime">
+      Account creation timestamp
+    </ResponseField>
+    
+    <ResponseField name="updated_at" type="datetime">
+      Last update timestamp
+    </ResponseField>
+    
+    <ResponseField name="roles" type="array">
+      Assigned roles
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+**Example Request**
+
+```bash
+curl -X GET "https://your-domain.com/usuarios?page=1" \
+  -H "Cookie: your-session-cookie"
+```
+
+### Create User
+
+Create a new user account with role assignment.
+
+```http
+POST /usuarios
+```
+
+**Request Body**
+
+<ParamField body="name" type="string" required>
+  User first name
+</ParamField>
+
+<ParamField body="apellido" type="string" required>
+  User last name
+</ParamField>
+
+<ParamField body="lp" type="string" required>
+  LP number (must be unique)
+</ParamField>
+
+<ParamField body="dni" type="string" required>
+  National ID number
+</ParamField>
+
+<ParamField body="email" type="string" required>
+  Email address (must be unique and valid)
+</ParamField>
+
+<ParamField body="password" type="string" required>
+  User password
+</ParamField>
+
+<ParamField body="confirm-password" type="string" required>
+  Password confirmation (must match password)
+</ParamField>
+
+<ParamField body="roles" type="string" required>
+  Role name to assign (from available roles)
+</ParamField>
+
+**Example Request**
+
+```bash
+curl -X POST "https://your-domain.com/usuarios" \
+  -H "Content-Type: application/x-www-form-urlencoded" \
+  -H "Cookie: your-session-cookie" \
+  -d "name=Juan" \
+  -d "apellido=Pérez" \
+  -d "lp=LP12345" \
+  -d "dni=35123456" \
+  -d "email=juan.perez@policia.gob.ar" \
+  -d "password=SecurePassword123" \
+  -d "confirm-password=SecurePassword123" \
+  -d "roles=Operador"
+```
+
+**Response**
+
+Redirects to `/usuarios` on success.
+
+**Error Responses**
+
+<ResponseField name="error" type="string">
+  "Ya se encuentra un usuario con el mismo LP" - User with this LP already exists
+</ResponseField>
+
+**Validation Rules**
+
+- Email must be unique and valid format
+- Password and confirm-password must match
+- LP must be unique
+- All required fields must be provided
+
+### Show User
+
+```http
+GET /usuarios/{id}
+```
+
+<ParamField path="id" type="integer" required>
+  User ID
+</ParamField>
+
+### Edit User
+
+Get user details for editing.
+
+```http
+GET /usuarios/{id}/edit
+```
+
+<ParamField path="id" type="integer" required>
+  User ID
+</ParamField>
+
+**Response**
+
+Returns view with user data, available roles, and current user roles.
+
+### Update User
+
+Update an existing user account.
+
+```http
+PUT /usuarios/{id}
+```
+
+<ParamField path="id" type="integer" required>
+  User ID to update
+</ParamField>
+
+**Request Body**
+
+<ParamField body="name" type="string" required>
+  User first name
+</ParamField>
+
+<ParamField body="apellido" type="string" required>
+  User last name
+</ParamField>
+
+<ParamField body="lp" type="string" required>
+  LP number
+</ParamField>
+
+<ParamField body="dni" type="string" required>
+  National ID
+</ParamField>
+
+<ParamField body="email" type="string" required>
+  Email address (unique, excluding current user)
+</ParamField>
+
+<ParamField body="password" type="string">
+  New password (optional, leave empty to keep current)
+</ParamField>
+
+<ParamField body="confirm-password" type="string">
+  Password confirmation (required if password provided)
+</ParamField>
+
+<ParamField body="roles" type="string" required>
+  Role name to assign
+</ParamField>
+
+**Example Request**
+
+```bash
+curl -X PUT "https://your-domain.com/usuarios/123" \
+  -H "Content-Type: application/x-www-form-urlencoded" \
+  -H "Cookie: your-session-cookie" \
+  -d "name=Juan" \
+  -d "apellido=Pérez" \
+  -d "lp=LP12345" \
+  -d "dni=35123456" \
+  -d "email=juan.perez@policia.gob.ar" \
+  -d "roles=Administrador"
+```
+
+**Response**
+
+Redirects to `/usuarios` on success.
+
+**Note**: When updating, if password is empty, the current password is preserved.
+
+### Delete User
+
+Delete a user account.
+
+```http
+DELETE /usuarios/{id}
+```
+
+<ParamField path="id" type="integer" required>
+  User ID to delete
+</ParamField>
+
+**Response**
+
+Redirects to `/usuarios` on success.
+
+## Profile Management
+
+### Update Profile
+
+Update user profile information and photo.
+
+```http
+POST /profile/update
+```
+
+**Request Body**
+
+<ParamField body="user_id" type="integer" required>
+  User ID to update
+</ParamField>
+
+<ParamField body="name" type="string" required>
+  User name (max 255 characters)
+</ParamField>
+
+<ParamField body="email" type="string" required>
+  Email address (must be unique excluding current user)
+</ParamField>
+
+<ParamField body="photo" type="file">
+  Profile photo (jpeg, png, jpg, gif, max 2MB)
+</ParamField>
+
+**Example Request**
+
+```bash
+curl -X POST "https://your-domain.com/profile/update" \
+  -H "Cookie: your-session-cookie" \
+  -F "user_id=123" \
+  -F "name=Juan Pérez" \
+  -F "email=juan.perez@policia.gob.ar" \
+  -F "photo=@profile.jpg"
+```
+
+**Response**
+
+```json
+{
+  "success": true,
+  "message": "Perfil actualizado correctamente",
+  "photo_url": "https://your-domain.com/uploads/profiles/profile_123_1234567890.jpg"
+}
+```
+
+**Notes**
+
+- If a new photo is uploaded, the previous photo is deleted
+- Photos are stored in `public/uploads/profiles/`
+- Filename format: `profile_{user_id}_{timestamp}.{extension}`
+
+### Update Theme
+
+Update user theme preference (light/dark mode).
+
+```http
+POST /profile/update-theme
+```
+
+**Request Body**
+
+<ParamField body="theme" type="string" required>
+  Theme preference: light or dark
+</ParamField>
+
+**Example Request**
+
+```bash
+curl -X POST "https://your-domain.com/profile/update-theme" \
+  -H "Content-Type: application/x-www-form-urlencoded" \
+  -H "Cookie: your-session-cookie" \
+  -d "theme=dark"
+```
+
+**Response**
+
+```json
+{
+  "success": true,
+  "message": "Tema actualizado correctamente",
+  "theme": "dark"
+}
+```
+
+## Authentication
+
+### Login
+
+```http
+GET /
+```
+
+Returns the login view.
+
+### Authentication Routes
+
+The system uses Laravel's built-in authentication:
+
+```php
+Auth::routes();
+```
+
+This provides:
+
+- `POST /login` - Authenticate user
+- `POST /logout` - Log out user
+- `GET /password/reset` - Password reset form
+- `POST /password/email` - Send password reset email
+- `POST /password/reset` - Reset password
+
+## User Roles & Permissions
+
+The system uses Spatie Laravel Permission package. Users can have one or more roles, and roles have associated permissions.
+
+### Common Permissions
+
+- **Equipment**: ver-equipo, crear-equipo, editar-equipo, borrar-equipo
+- **Fleet**: ver-flota, crear-flota, editar-flota, borrar-flota
+- **Cameras**: ver-camara, crear-camara, editar-camara, borrar-camara
+- **Bodycams**: ver-bodycam, crear-bodycam, editar-bodycam, borrar-bodycam
+- **Dependencies**: ver-dependencia, crear-dependencia, editar-dependencia, borrar-dependencia
+- **Users**: ver-usuario, crear-usuario, editar-usuario, borrar-usuario
+- **Roles**: ver-rol, crear-rol, editar-rol, borrar-rol
+
+### Check User Role
+
+```php
+$user->hasRole('Administrador')
+$user->hasPermissionTo('crear-equipo')
+```
+
+## Error Codes
+
+<ResponseField name="400" type="error">
+  Bad Request - Validation error or missing required fields
+</ResponseField>
+
+<ResponseField name="401" type="error">
+  Unauthorized - Authentication required
+</ResponseField>
+
+<ResponseField name="403" type="error">
+  Forbidden - Insufficient permissions
+</ResponseField>
+
+<ResponseField name="404" type="error">
+  Not Found - User not found
+</ResponseField>
+
+<ResponseField name="422" type="error">
+  Unprocessable Entity - Duplicate email/LP or validation failure
+</ResponseField>
+
+## Models
+
+### User Model
+
+Represents a system user.
+
+**Traits**
+
+- `HasApiTokens` - Laravel Sanctum API tokens
+- `HasFactory` - Factory support
+- `Notifiable` - Notification support
+- `HasRoles` - Spatie role management
+
+**Hidden Attributes**
+
+- `password` - Never returned in responses
+- `remember_token` - Session token
+
+**Relationships**
+
+- `auditoria` - HasMany Auditoria (audit trail)
+- `roles` - BelongsToMany Role (via Spatie)
+- `permissions` - BelongsToMany Permission (via Spatie)
+
+**Methods**
+
+- `getRoleColor($roleName)` - Get color associated with role
+
+**Source Code Reference**
+
+Controller: `app/Http/Controllers/UsuarioController.php:1-216`
+
+Model: `app/Models/User.php:1-63`

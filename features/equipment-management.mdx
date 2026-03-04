@@ -1,0 +1,216 @@
+---
+title: Equipment Management
+description: Create, track, and manage all radio equipment in your fleet with complete lifecycle monitoring
+---
+
+Equipment Management allows you to maintain a complete inventory of radio terminals and communication devices. Track equipment status, warranty information, technical details, and complete history from acquisition to decommissioning.
+
+## Creating New Equipment
+
+Add new equipment to your inventory with detailed specifications:
+
+<Steps>
+  <Step title="Select Terminal Type">
+    Choose the terminal type including brand, model, and usage category. The system maintains a catalog of terminal types with associated specifications.
+  </Step>
+  <Step title="Set Equipment Status">
+    Assign an initial status: New, Used, Repaired, Decommissioned, Non-functional, Lost, Replacement, Temporary, or Under Review.
+  </Step>
+  <Step title="Enter Identification Details">
+    Record essential identifiers:
+    - **TEI** (Terminal Equipment Identity) - Required
+    - **ISSI** (Individual Short Subscriber Identity) - Optional for new equipment
+    - **ISSI Name** - Descriptive name for the ISSI
+  </Step>
+  <Step title="Add Ownership Information">
+    Specify:
+    - **Provider**: Who supplied the equipment (e.g., Patagonia Green, Telecom, Policía de Entre Ríos)
+    - **Owner**: Current owner of the equipment
+  </Step>
+  <Step title="Configure Warranty Details">
+    Track warranty status:
+    - Check warranty coverage checkbox
+    - Set warranty expiration date
+  </Step>
+  <Step title="Add Observations">
+    Include any additional notes, specifications, or special considerations
+  </Step>
+</Steps>
+
+<Info>
+  The system validates that TEI numbers are unique. You cannot create duplicate equipment with the same TEI.
+</Info>
+
+## Searching Equipment
+
+Find equipment quickly using multiple search criteria:
+
+**Search by:**
+- TEI number
+- ISSI number  
+- Provider name
+- Owner name
+
+The search feature performs partial matches, making it easy to locate equipment even with incomplete information. Results are paginated (40 items per page) and sorted by TEI in ascending order.
+
+## Viewing Equipment Details
+
+Each equipment record displays:
+
+<CardGroup cols={2}>
+  <Card title="Technical Information" icon="microchip">
+    - Brand and model
+    - Terminal type and category
+    - TEI and ISSI identifiers
+    - ISSI name
+  </Card>
+  <Card title="Status Information" icon="circle-info">
+    - Current status
+    - Status change date
+    - Provider and owner
+    - Warranty status
+  </Card>
+  <Card title="Battery Details" icon="battery-full">
+    - Primary battery number
+    - Secondary battery number (if applicable)
+  </Card>
+  <Card title="Additional Data" icon="note-sticky">
+    - Warranty expiration date
+    - Observations and notes
+  </Card>
+</CardGroup>
+
+## Editing Equipment
+
+Update equipment information as needed:
+
+**Editable Fields:**
+- Equipment status
+- Status change date
+- ISSI and ISSI name
+- TEI (with validation)
+- Battery numbers (primary and secondary)
+- Provider and owner
+- Warranty status and expiration
+- Observations
+
+<Note>
+  The terminal type (brand/model) cannot be changed after creation. If you need to change the terminal type, you must create a new equipment record.
+</Note>
+
+**Validation Rules:**
+- TEI field is required and must be unique
+- Warranty checkbox and expiration date work together
+- Status changes are logged with timestamps
+
+## Equipment Status Types
+
+<Accordion title="New">
+  Brand new equipment that has never been deployed. Typically awaiting first installation.
+</Accordion>
+
+<Accordion title="Used">
+  Equipment currently in active service at a location or assigned to a resource.
+</Accordion>
+
+<Accordion title="Repaired">
+  Equipment that underwent maintenance and has been restored to functional status.
+</Accordion>
+
+<Accordion title="Decommissioned">
+  Permanently removed from service. No longer available for assignment.
+</Accordion>
+
+<Accordion title="Non-functional">
+  Equipment that is not working and requires repair or replacement.
+</Accordion>
+
+<Accordion title="Lost">
+  Equipment reported as missing or unaccounted for.
+</Accordion>
+
+<Accordion title="Replacement">
+  Equipment designated as spare parts for other units.
+</Accordion>
+
+<Accordion title="Temporary">
+  Equipment on temporary assignment or evaluation.
+</Accordion>
+
+<Accordion title="Under Review">
+  Equipment undergoing testing, evaluation, or quality assessment.
+</Accordion>
+
+## Deleting Equipment
+
+When you delete equipment, the system:
+
+1. Removes all associated fleet records (`flota_general`)
+2. Deletes all historical movement records (`historico`)
+3. Permanently removes the equipment from inventory
+
+<Warning>
+  Deletion is permanent and cascades to related records. Ensure you want to completely remove the equipment before confirming deletion.
+</Warning>
+
+## Equipment History
+
+View complete movement history for any equipment:
+
+- Access history from the equipment detail view
+- See all assignments chronologically (most recent first)
+- Track resource assignments and movements
+- View dates and movement types
+- Access observations for each movement
+
+**Historical data includes:**
+- Assignment dates
+- Previous and current resources
+- Location changes
+- Movement types (installation, transfer, uninstallation, etc.)
+- Status changes
+- Attached documentation and images
+
+## Exporting Equipment Data
+
+Generate Excel exports with complete equipment inventory:
+- All equipment details
+- Current status and locations
+- Provider and ownership information
+- Technical specifications
+- Export filename includes timestamp: `ListadoEquipos_YYYY-MM-DD_HH-MM-SS.xlsx`
+
+<Info>
+  The equipment list integrates with the Fleet Management system. Once equipment is created, you can assign it to resources and track its complete lifecycle through the fleet module.
+</Info>
+
+## Integration with Fleet System
+
+Equipment records serve as the foundation for:
+- Fleet assignments
+- Movement tracking
+- Resource allocation
+- Historical records
+- Audit trails
+
+Any equipment not yet assigned to a resource appears in the available equipment list when creating new fleet assignments.
+
+## Best Practices
+
+<CardGroup cols={1}>
+  <Card title="Maintain Accurate TEI Numbers" icon="hashtag">
+    TEI is the primary identifier. Always verify accuracy when entering or updating.
+  </Card>
+  <Card title="Update Status Promptly" icon="clock">
+    Keep equipment status current to ensure accurate inventory and availability tracking.
+  </Card>
+  <Card title="Track Warranties" icon="shield-check">
+    Record warranty information to know when coverage expires and plan for renewals or replacements.
+  </Card>
+  <Card title="Use Observations Field" icon="pen">
+    Document special conditions, configurations, or issues for future reference.
+  </Card>
+  <Card title="Review Before Deleting" icon="triangle-exclamation">
+    Check equipment history before deletion. Consider changing status to "Decommissioned" instead for permanent record-keeping.
+  </Card>
+</CardGroup>

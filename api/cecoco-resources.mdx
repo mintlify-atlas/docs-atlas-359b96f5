@@ -1,0 +1,325 @@
+---
+title: 'CECOCO Resources API'
+description: 'Retrieve real-time resource and service data from the CECOCO emergency coordination system'
+---
+
+## Overview
+
+The CECOCO Resources API provides access to real-time positioning data for emergency resources (vehicles, units) and active service incidents. You can use these endpoints to display resources and services on live monitoring maps.
+
+## Get Resources and Services
+
+Retrieves the latest GPS positions for all active resources and ongoing service incidents within a specified time window.
+
+<CodeGroup>
+```bash cURL
+curl -X GET "https://your-domain.com/getRecursosCecoco" \
+  -H "Authorization: Bearer YOUR_TOKEN"
+```
+
+```javascript JavaScript
+fetch('https://your-domain.com/getRecursosCecoco', {
+  method: 'GET',
+  headers: {
+    'Authorization': 'Bearer YOUR_TOKEN'
+  }
+})
+.then(response => response.json())
+.then(data => console.log(data));
+```
+
+```php PHP
+$response = Http::get('https://your-domain.com/getRecursosCecoco');
+$data = $response->json();
+```
+</CodeGroup>
+
+### Response Structure
+
+The endpoint returns a JSON object containing two main arrays:
+
+<ResponseField name="recursos" type="array">
+  Array of resource objects with current GPS positions
+  
+  <ResponseField name="id" type="integer">
+    Unique identifier for the GPS position record
+  </ResponseField>
+  
+  <ResponseField name="recursos_id" type="integer">
+    Reference to the resource entity
+  </ResponseField>
+  
+  <ResponseField name="recurso" type="string">
+    Resource name/identifier (e.g., "MOVIL-101")
+  </ResponseField>
+  
+  <ResponseField name="latitud" type="float">
+    Latitude coordinate in radians (requires conversion)
+  </ResponseField>
+  
+  <ResponseField name="longitud" type="float">
+    Longitude coordinate in radians (requires conversion)
+  </ResponseField>
+  
+  <ResponseField name="latitud_decimal" type="float">
+    Latitude converted to decimal degrees (ready to use)
+  </ResponseField>
+  
+  <ResponseField name="longitud_decimal" type="float">
+    Longitude converted to decimal degrees (ready to use)
+  </ResponseField>
+  
+  <ResponseField name="velocidad" type="float">
+    Current speed of the resource
+  </ResponseField>
+  
+  <ResponseField name="fecha" type="datetime">
+    Timestamp of the GPS position
+  </ResponseField>
+  
+  <ResponseField name="tipo_recurso" type="string">
+    Type of resource (e.g., "Patrullero", "Ambulancia")
+  </ResponseField>
+  
+  <ResponseField name="idTipo" type="integer">
+    Resource type identifier
+  </ResponseField>
+</ResponseField>
+
+<ResponseField name="servicios" type="array">
+  Array of active service incidents with location data
+  
+  <ResponseField name="id" type="integer">
+    Unique service identifier
+  </ResponseField>
+  
+  <ResponseField name="idServicio" type="integer">
+    Reference to the service record
+  </ResponseField>
+  
+  <ResponseField name="fechaCreacion" type="datetime">
+    Service creation timestamp
+  </ResponseField>
+  
+  <ResponseField name="latitud" type="float">
+    Service location latitude
+  </ResponseField>
+  
+  <ResponseField name="longitud" type="float">
+    Service location longitude
+  </ResponseField>
+  
+  <ResponseField name="tipo_servicio" type="string">
+    Service type (e.g., "Robo", "Accidente", "Emergencia Médica")
+  </ResponseField>
+  
+  <ResponseField name="descripcion" type="string">
+    Service incident description
+  </ResponseField>
+  
+  <ResponseField name="direccion" type="string">
+    Service incident address
+  </ResponseField>
+</ResponseField>
+
+### Response Example
+
+```json
+{
+  "recursos": [
+    {
+      "id": 12345,
+      "recursos_id": 42,
+      "recurso": "MOVIL-101",
+      "latitud": -0.55345,
+      "longitud": -1.05678,
+      "latitud_decimal": -31.7298,
+      "longitud_decimal": -60.5355,
+      "velocidad": 45.5,
+      "fecha": "2023-11-01 09:21:08",
+      "tipo_recurso": "Patrullero",
+      "idTipo": 1
+    },
+    {
+      "id": 12346,
+      "recursos_id": 43,
+      "recurso": "MOVIL-102",
+      "latitud": -0.55421,
+      "longitud": -1.05892,
+      "latitud_decimal": -31.7341,
+      "longitud_decimal": -60.5478,
+      "velocidad": 0.0,
+      "fecha": "2023-11-01 09:21:05",
+      "tipo_recurso": "Patrullero",
+      "idTipo": 1
+    }
+  ],
+  "servicios": [
+    {
+      "id": 5678,
+      "idServicio": 5678,
+      "fechaCreacion": "2023-11-01 09:15:22",
+      "latitud": -31.7377,
+      "longitud": -60.5138,
+      "tipo_servicio": "Robo",
+      "descripcion": "Robo en la vía pública",
+      "direccion": "San Martín 1234"
+    },
+    {
+      "id": 5679,
+      "idServicio": 5679,
+      "fechaCreacion": "2023-11-01 09:18:45",
+      "latitud": -31.7467,
+      "longitud": -60.5364,
+      "tipo_servicio": "Accidente",
+      "descripcion": "Accidente de tránsito",
+      "direccion": "Av. Ramírez y Urquiza"
+    }
+  ]
+}
+```
+
+<Note>
+  **Coordinate Conversion**: GPS coordinates are stored in radians in the database. The API automatically converts them to decimal degrees by dividing by 0.0174533. You can use the `latitud_decimal` and `longitud_decimal` fields directly for mapping.
+</Note>
+
+## Get Historical Services
+
+Retrieves historical service incidents for heat map and analytics purposes, filtered by date range and incident type.
+
+<CodeGroup>
+```bash cURL
+curl -X GET "https://your-domain.com/getServiciosCecoco" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "fecha_desde": "2023-10-01 00:00:00",
+    "fecha_hasta": "2023-10-31 23:59:59",
+    "tipificacion": "Robo"
+  }'
+```
+
+```javascript JavaScript
+fetch('https://your-domain.com/getServiciosCecoco', {
+  method: 'GET',
+  headers: {
+    'Content-Type': 'application/json'
+  },
+  body: JSON.stringify({
+    fecha_desde: '2023-10-01 00:00:00',
+    fecha_hasta: '2023-10-31 23:59:59',
+    tipificacion: 'Robo'
+  })
+})
+.then(response => response.json())
+.then(data => console.log(data));
+```
+</CodeGroup>
+
+### Query Parameters
+
+<ParamField query="fecha_desde" type="datetime" required>
+  Start date for the historical query in format `Y-m-d H:i:s`
+</ParamField>
+
+<ParamField query="fecha_hasta" type="datetime" required>
+  End date for the historical query in format `Y-m-d H:i:s`
+</ParamField>
+
+<ParamField query="tipificacion" type="string" required>
+  Service type to filter by (e.g., "Robo", "Hurto", "Accidente", "Arrebato")
+</ParamField>
+
+### Response Example
+
+```json
+{
+  "servicios": [
+    {
+      "id": 1234,
+      "idServicio": 1234,
+      "fechaCreacion": "2023-10-15 14:30:00",
+      "latitud": -31.72978,
+      "longitud": -60.53547,
+      "descripcion": "Robo a transeúnte",
+      "direccion": "San Martín 850",
+      "tiposservicio_nombre": "Robo"
+    },
+    {
+      "id": 1235,
+      "idServicio": 1235,
+      "fechaCreacion": "2023-10-16 18:45:00",
+      "latitud": -31.73771,
+      "longitud": -60.51383,
+      "descripcion": "Robo de vehículo",
+      "direccion": "Av. Almafuerte 2100",
+      "tiposservicio_nombre": "Robo"
+    }
+  ]
+}
+```
+
+## Implementation Details
+
+### Data Source
+
+The CECOCO endpoints connect to a secondary database (`mysql_second`) that contains the operational data from the emergency coordination center:
+
+- **ultimasposicionesgps**: Latest GPS positions for all resources
+- **recursos**: Resource master data (vehicles, units)
+- **tiposrecurso**: Resource type classifications
+- **servicios/servicios_historico**: Active and historical service incidents
+- **posicionamientosmapaservicio**: Service location data for map display
+
+### Time Window
+
+The `/getRecursosCecoco` endpoint uses a 100-minute lookback window from the reference timestamp to capture recent resource movements and active services. You can see this implementation in `CecocoController.php:85-88`:
+
+```php
+$fecha = Carbon::parse('2023-11-01 09:21:08');
+$fecha_actual = $fecha->copy();
+$fecha_desde = $fecha->subMinutes(100);
+$fecha_hasta = $fecha_actual->copy();
+```
+
+<Note>
+  **Development Note**: The current implementation uses a hardcoded reference date. In production, you should replace this with `Carbon::now()` to get real-time data.
+</Note>
+
+### Filtering Logic
+
+The resources query excludes invalid GPS positions where coordinates are exactly `0.0, 0.0`, ensuring only valid location data is returned:
+
+```php
+->where('ultimasposicionesgps.latitud', '!=', '0.0')
+->where('ultimasposicionesgps.longitud', '!=', '0.0')
+```
+
+## Error Handling
+
+Both endpoints return standardized error responses:
+
+```json
+{
+  "status": "error",
+  "message": "Detailed error message"
+}
+```
+
+Common error scenarios:
+- Database connection failures to the CECOCO secondary database
+- Invalid coordinate data
+- Missing required parameters for historical queries
+
+## Use Cases
+
+### Real-Time Resource Monitoring
+
+Use `/getRecursosCecoco` to build live tracking dashboards that display current positions of patrol vehicles, ambulances, and other emergency resources.
+
+### Heat Maps
+
+Use `/getServiciosCecoco` with date ranges to generate crime heat maps and incident density visualizations for operational planning and analysis.
+
+### Service Correlation
+
+Combine resource positions with active services to analyze response times, resource allocation efficiency, and coverage gaps.

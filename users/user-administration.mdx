@@ -1,0 +1,392 @@
+---
+title: User Administration
+description: Learn how to create, update, delete, and manage user accounts in C.A.R. 911, including profile management and user attributes.
+---
+
+User administration in C.A.R. 911 is handled by the `UsuarioController`, which provides comprehensive CRUD operations and profile management functionality.
+
+## User Model Structure
+
+The User model includes the following fillable attributes:
+
+```php
+protected $fillable = [
+    'name',
+    'apellido',
+    'lp',
+    'dni',
+    'email',
+    'password',
+    'photo',
+    'theme'
+];
+```
+
+Reference: app/Models/User.php:23-32
+
+### User Attributes
+
+<ParamField path="name" type="string" required>
+  User's first name
+</ParamField>
+
+<ParamField path="apellido" type="string" required>
+  User's last name (surname)
+</ParamField>
+
+<ParamField path="lp" type="string" required>
+  License plate or identification number (must be unique)
+</ParamField>
+
+<ParamField path="dni" type="string" required>
+  National identity document number
+</ParamField>
+
+<ParamField path="email" type="string" required>
+  User's email address (must be unique)
+</ParamField>
+
+<ParamField path="password" type="string" required>
+  User's password (hashed before storage)
+</ParamField>
+
+<ParamField path="photo" type="string">
+  Path to user's profile photo
+</ParamField>
+
+<ParamField path="theme" type="string">
+  User's theme preference (light or dark)
+</ParamField>
+
+## Listing Users
+
+Retrieve all users with pagination:
+
+```php
+public function index(Request $request)
+{
+    $usuarios = User::paginate(100);
+    return view('usuarios.index', compact('usuarios'));
+}
+```
+
+Reference: app/Http/Controllers/UsuarioController.php:20-29
+
+<Note>
+The system uses pagination with 100 users per page. Remember to add `{!! $usuarios->links() !!}` in your view to display pagination controls.
+</Note>
+
+## Creating Users
+
+### Display Create Form
+
+Load all available roles for assignment:
+
+```php
+public function create()
+{
+    $roles = Role::pluck('name', 'name')->all();
+    return view('usuarios.crear', compact('roles'));
+}
+```
+
+Reference: app/Http/Controllers/UsuarioController.php:38-43
+
+### Store New User
+
+<Steps>
+  <Step title="Validate Input">
+    Validate all required fields with specific rules:
+    
+    ```php
+    $this->validate($request, [
+        'name' => 'required',
+        'apellido' => 'required',
+        'lp' => 'required',
+        'dni' => 'required',
+        'email' => 'required|email|unique:users,email',
+        'password' => 'required|same:confirm-password',
+        'roles' => 'required'
+    ]);
+    ```
+    
+    Reference: app/Http/Controllers/UsuarioController.php:53-61
+  </Step>
+  
+  <Step title="Check for Duplicates">
+    Prevent duplicate users based on the LP field:
+    
+    ```php
+    $u = User::where('lp', $request->lp)->first();
+    if (!is_null($u)) {
+        return back()->with('error', 'Ya se encuentra un usuario con el mismo LP');
+    }
+    ```
+    
+    Reference: app/Http/Controllers/UsuarioController.php:64-67
+  </Step>
+  
+  <Step title="Hash Password and Create User">
+    Hash the password and create the user record:
+    
+    ```php
+    $input = $request->all();
+    $input['password'] = Hash::make($input['password']);
+    
+    $user = User::create($input);
+    $user->assignRole($request->input('roles'));
+    
+    return redirect()->route('usuarios.index');
+    ```
+    
+    Reference: app/Http/Controllers/UsuarioController.php:69-75
+  </Step>
+</Steps>
+
+<Warning>
+The LP (license plate) field must be unique. The system will reject user creation if another user with the same LP already exists.
+</Warning>
+
+## Updating Users
+
+### Display Edit Form
+
+Load the user, roles, and current role assignment:
+
+```php
+public function edit($id)
+{
+    $user = User::find($id);
+    $roles = Role::pluck('name', 'name')->all();
+    $userRole = $user->roles->pluck('name', 'name')->all();
+    
+    return view('usuarios.editar', compact('user', 'roles', 'userRole'));
+}
+```
+
+Reference: app/Http/Controllers/UsuarioController.php:95-102
+
+### Update User Data
+
+Update user information with validation:
+
+```php
+public function update(Request $request, $id)
+{
+    $this->validate($request, [
+        'name' => 'required',
+        'apellido' => 'required',
+        'lp' => 'required',
+        'dni' => 'required',
+        'email' => 'required|email|unique:users,email,' . $id,
+        'password' => 'same:confirm-password',
+        'roles' => 'required'
+    ]);
+    
+    $input = $request->all();
+    if (!empty($input['password'])) {
+        $input['password'] = Hash::make($input['password']);
+    } else {
+        $input = Arr::except($input, array('password'));
+    }
+    
+    $user = User::find($id);
+    $user->update($input);
+    DB::table('model_has_roles')->where('model_id', $id)->delete();
+    
+    $user->assignRole($request->input('roles'));
+    
+    return redirect()->route('usuarios.index');
+}
+```
+
+Reference: app/Http/Controllers/UsuarioController.php:112-138
+
+<Note>
+When updating a user, if the password field is empty, it will not be changed. Only provide a password value when you want to update it.
+</Note>
+
+## Profile Management
+
+### Update Profile with Photo
+
+Users can update their profile information including uploading a photo:
+
+```php
+public function updateProfile(Request $request)
+{
+    $this->validate($request, [
+        'name' => 'required|string|max:255',
+        'email' => 'required|email|unique:users,email,' . $request->user_id,
+        'photo' => 'nullable|image|mimes:jpeg,png,jpg,gif|max:2048',
+    ]);
+    
+    $user = User::findOrFail($request->user_id);
+    $input = $request->only(['name', 'email']);
+    
+    // Handle photo upload
+    if ($request->hasFile('photo')) {
+        // Delete old photo if exists
+        if ($user->photo && file_exists(public_path($user->photo))) {
+            unlink(public_path($user->photo));
+        }
+        
+        // Save new photo
+        $image = $request->file('photo');
+        $imageName = 'profile_' . $user->id . '_' . time() . '.' . $image->getClientOriginalExtension();
+        $image->move(public_path('uploads/profiles'), $imageName);
+        $input['photo'] = 'uploads/profiles/' . $imageName;
+    }
+    
+    $user->update($input);
+    
+    return response()->json([
+        'success' => true,
+        'message' => 'Perfil actualizado correctamente',
+        'photo_url' => $user->photo ? asset($user->photo) : asset('img/logo.png')
+    ]);
+}
+```
+
+Reference: app/Http/Controllers/UsuarioController.php:146-179
+
+<ParamField path="photo" type="file">
+  Profile photo must be an image (jpeg, png, jpg, gif) with maximum size of 2MB
+</ParamField>
+
+### Update Theme Preference
+
+Users can switch between light and dark themes:
+
+```php
+public function updateTheme(Request $request)
+{
+    $this->validate($request, [
+        'theme' => 'required|in:light,dark'
+    ]);
+    
+    $user = auth()->user();
+    $user->theme = $request->theme;
+    $user->save();
+    
+    return response()->json([
+        'success' => true,
+        'message' => 'Tema actualizado correctamente',
+        'theme' => $user->theme
+    ]);
+}
+```
+
+Reference: app/Http/Controllers/UsuarioController.php:187-202
+
+## Deleting Users
+
+Delete a user from the system:
+
+```php
+public function destroy($id)
+{
+    User::find($id)->delete();
+    return redirect()->route('usuarios.index');
+}
+```
+
+Reference: app/Http/Controllers/UsuarioController.php:210-214
+
+<Warning>
+Deleting a user is permanent. Consider implementing soft deletes if you need to maintain historical records.
+</Warning>
+
+## Routes for User Management
+
+User administration routes are protected by authentication:
+
+```php
+Route::group(['middleware' => ['auth']], function () {
+    Route::resource('usuarios', UsuarioController::class);
+    Route::post('/profile/update', [UsuarioController::class, 'updateProfile'])->name('profile.update');
+    Route::post('/profile/update-theme', [UsuarioController::class, 'updateTheme'])->name('profile.updateTheme');
+});
+```
+
+Reference: routes/web.php:52-64
+
+### Available Routes
+
+- `GET /usuarios` - List all users
+- `GET /usuarios/create` - Show create form
+- `POST /usuarios` - Store new user
+- `GET /usuarios/{id}/edit` - Show edit form
+- `PUT /usuarios/{id}` - Update user
+- `DELETE /usuarios/{id}` - Delete user
+- `POST /profile/update` - Update user profile with photo
+- `POST /profile/update-theme` - Update user theme preference
+
+## User Relationships
+
+The User model defines relationships with other models:
+
+```php
+public function auditoria(){
+    return $this->hasMany(Auditoria::class);
+}
+```
+
+Reference: app/Models/User.php:53-55
+
+This allows tracking of user actions through the audit system.
+
+## Required Imports
+
+When working with users, ensure you import the necessary dependencies:
+
+```php
+use App\Models\User;
+use Spatie\Permission\Models\Role;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Arr;
+```
+
+Reference: app/Http/Controllers/UsuarioController.php:7-11
+
+## Best Practices
+
+<Steps>
+  <Step title="Always Hash Passwords">
+    Never store plain text passwords. Always use `Hash::make()` before saving:
+    
+    ```php
+    $input['password'] = Hash::make($input['password']);
+    ```
+  </Step>
+  
+  <Step title="Validate Email Uniqueness">
+    When creating users, ensure emails are unique. When updating, exclude the current user from uniqueness check:
+    
+    ```php
+    'email' => 'required|email|unique:users,email,' . $id
+    ```
+  </Step>
+  
+  <Step title="Handle Photo Uploads Carefully">
+    Always delete old photos before uploading new ones to prevent disk space issues.
+  </Step>
+  
+  <Step title="Assign Roles Immediately">
+    After creating a user, immediately assign roles to ensure proper access control:
+    
+    ```php
+    $user->assignRole($request->input('roles'));
+    ```
+  </Step>
+  
+  <Step title="Clean Up Role Assignments">
+    When updating users, clear old role assignments before assigning new ones:
+    
+    ```php
+    DB::table('model_has_roles')->where('model_id', $id)->delete();
+    $user->assignRole($request->input('roles'));
+    ```
+  </Step>
+</Steps>

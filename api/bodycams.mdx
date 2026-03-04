@@ -1,0 +1,364 @@
+---
+title: Bodycams API
+description: Manage body-worn cameras for law enforcement personnel
+---
+
+## Overview
+
+The Bodycams API manages body-worn cameras including inventory tracking, states, delivery management, and equipment assignment to personnel. Each bodycam has a unique code, serial number, and tracks its current state (available, delivered, lost, maintenance, or decommissioned).
+
+## Endpoints
+
+### List Bodycams
+
+Retrieve a paginated list of bodycams with filtering options.
+
+```http
+GET /bodycams
+```
+
+<ParamField query="texto" type="string">
+  Search by code, serial number, IMEI, brand, or model
+</ParamField>
+
+<ParamField query="estado" type="string">
+  Filter by state: disponible, entregada, perdida, mantenimiento, dada_baja
+</ParamField>
+
+<ParamField query="page" type="integer" default="1">
+  Page number (10 items per page)
+</ParamField>
+
+**Response**
+
+<ResponseField name="bodycams" type="array">
+  Array of bodycam objects
+  
+  <Expandable title="Bodycam Object">
+    <ResponseField name="id" type="integer">
+      Bodycam ID
+    </ResponseField>
+    
+    <ResponseField name="codigo" type="string" required>
+      Unique bodycam code (must be unique)
+    </ResponseField>
+    
+    <ResponseField name="numero_serie" type="string" required>
+      Serial number (must be unique)
+    </ResponseField>
+    
+    <ResponseField name="imei" type="string">
+      IMEI number for cellular-enabled bodycams
+    </ResponseField>
+    
+    <ResponseField name="marca" type="string" required>
+      Brand/manufacturer
+    </ResponseField>
+    
+    <ResponseField name="modelo" type="string" required>
+      Model name
+    </ResponseField>
+    
+    <ResponseField name="numero_tarjeta_sd" type="string">
+      SD card number
+    </ResponseField>
+    
+    <ResponseField name="numero_bateria" type="string">
+      Battery serial number
+    </ResponseField>
+    
+    <ResponseField name="estado" type="string" required>
+      Current state: disponible, entregada, perdida, mantenimiento, dada_baja
+    </ResponseField>
+    
+    <ResponseField name="fecha_adquisicion" type="date">
+      Purchase/acquisition date
+    </ResponseField>
+    
+    <ResponseField name="observaciones" type="text">
+      Additional notes
+    </ResponseField>
+    
+    <ResponseField name="usuario_creador" type="integer">
+      User ID who created the record
+    </ResponseField>
+    
+    <ResponseField name="created_at" type="datetime">
+      Record creation timestamp
+    </ResponseField>
+    
+    <ResponseField name="updated_at" type="datetime">
+      Last update timestamp
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+**Example Request**
+
+```bash
+curl -X GET "https://your-domain.com/bodycams?texto=BC001&estado=disponible" \
+  -H "Cookie: your-session-cookie"
+```
+
+### Create Bodycam
+
+Create a new bodycam record.
+
+```http
+POST /bodycams
+```
+
+**Request Body**
+
+<ParamField body="codigo" type="string" required>
+  Unique bodycam code
+</ParamField>
+
+<ParamField body="numero_serie" type="string" required>
+  Unique serial number
+</ParamField>
+
+<ParamField body="marca" type="string" required>
+  Brand/manufacturer
+</ParamField>
+
+<ParamField body="modelo" type="string" required>
+  Model name
+</ParamField>
+
+<ParamField body="estado" type="string" required>
+  Initial state: disponible, entregada, perdida, mantenimiento, dada_baja
+</ParamField>
+
+<ParamField body="imei" type="string">
+  IMEI number
+</ParamField>
+
+<ParamField body="numero_tarjeta_sd" type="string">
+  SD card serial number
+</ParamField>
+
+<ParamField body="numero_bateria" type="string">
+  Battery serial number
+</ParamField>
+
+<ParamField body="fecha_adquisicion" type="date">
+  Acquisition date
+</ParamField>
+
+<ParamField body="observaciones" type="text">
+  Additional observations
+</ParamField>
+
+**Example Request**
+
+```bash
+curl -X POST "https://your-domain.com/bodycams" \
+  -H "Content-Type: application/x-www-form-urlencoded" \
+  -H "Cookie: your-session-cookie" \
+  -d "codigo=BC001" \
+  -d "numero_serie=SN123456789" \
+  -d "marca=Axon" \
+  -d "modelo=Body 3" \
+  -d "estado=disponible" \
+  -d "fecha_adquisicion=2024-01-15"
+```
+
+**Response**
+
+Redirects to `/bodycams` with success message: "Bodycam creada exitosamente"
+
+**Validation Rules**
+
+- `codigo` must be unique
+- `numero_serie` must be unique
+- `estado` must be one of: disponible, entregada, perdida, mantenimiento, dada_baja
+
+### Show Bodycam
+
+Retrieve details of a specific bodycam.
+
+```http
+GET /bodycams/{id}
+```
+
+<ParamField path="id" type="integer" required>
+  Bodycam ID
+</ParamField>
+
+**Response**
+
+Returns a view with complete bodycam details including delivery history.
+
+### Update Bodycam
+
+Update an existing bodycam record.
+
+```http
+PUT /bodycams/{id}
+```
+
+<ParamField path="id" type="integer" required>
+  Bodycam ID to update
+</ParamField>
+
+**Request Body**
+
+Same parameters as create endpoint.
+
+**Validation Rules**
+
+- `codigo` must be unique (excluding current record)
+- `numero_serie` must be unique (excluding current record)
+- `estado` must be one of: disponible, entregada, perdida, mantenimiento, dada_baja
+
+**Example Request**
+
+```bash
+curl -X PUT "https://your-domain.com/bodycams/123" \
+  -H "Content-Type: application/x-www-form-urlencoded" \
+  -H "Cookie: your-session-cookie" \
+  -d "codigo=BC001" \
+  -d "numero_serie=SN123456789" \
+  -d "marca=Axon" \
+  -d "modelo=Body 3" \
+  -d "estado=mantenimiento" \
+  -d "observaciones=Battery replacement needed"
+```
+
+**Response**
+
+Redirects to `/bodycams` with success message: "Bodycam actualizada exitosamente"
+
+### Delete Bodycam
+
+Delete a bodycam record.
+
+```http
+DELETE /bodycams/{id}
+```
+
+<ParamField path="id" type="integer" required>
+  Bodycam ID to delete
+</ParamField>
+
+**Response**
+
+Redirects to `/bodycams` with success message: "Bodycam eliminada exitosamente"
+
+## Bodycam States
+
+The system tracks five possible states for each bodycam:
+
+<ResponseField name="disponible" type="state">
+  Available for assignment
+</ResponseField>
+
+<ResponseField name="entregada" type="state">
+  Delivered to personnel
+</ResponseField>
+
+<ResponseField name="perdida" type="state">
+  Lost or missing
+</ResponseField>
+
+<ResponseField name="mantenimiento" type="state">
+  Under maintenance or repair
+</ResponseField>
+
+<ResponseField name="dada_baja" type="state">
+  Decommissioned/retired
+</ResponseField>
+
+## Model Methods
+
+The Bodycam model provides several helper methods:
+
+### Check Availability
+
+```php
+$bodycam->estaDisponible() // Returns true if state is 'disponible'
+$bodycam->estaEntregada()  // Returns true if state is 'entregada'
+```
+
+### Change State
+
+```php
+$bodycam->marcarComoEntregada()   // Sets state to 'entregada'
+$bodycam->marcarComoDisponible()  // Sets state to 'disponible'
+$bodycam->marcarComoPerdida()     // Sets state to 'perdida'
+```
+
+### Get Formatted Data
+
+```php
+$bodycam->estado_formateado    // Returns human-readable state name
+$bodycam->codigo_completo       // Returns "CODE - SERIAL_NUMBER"
+```
+
+### Query Scopes
+
+```php
+Bodycam::disponibles()->get()              // Only available bodycams
+Bodycam::entregadas()->get()               // Only delivered bodycams
+Bodycam::porCodigo('BC001')->get()         // Search by code
+Bodycam::porSerie('SN123')->get()          // Search by serial number
+```
+
+## Error Codes
+
+<ResponseField name="400" type="error">
+  Bad Request - Validation error or missing required fields
+</ResponseField>
+
+<ResponseField name="401" type="error">
+  Unauthorized - Authentication required
+</ResponseField>
+
+<ResponseField name="403" type="error">
+  Forbidden - Missing permissions (ver-bodycam, crear-bodycam, editar-bodycam, borrar-bodycam)
+</ResponseField>
+
+<ResponseField name="404" type="error">
+  Not Found - Bodycam not found
+</ResponseField>
+
+<ResponseField name="422" type="error">
+  Unprocessable Entity - Duplicate code/serial or invalid state
+</ResponseField>
+
+## Related Endpoints
+
+For bodycam delivery management, see:
+
+- `POST /entrega-bodycams` - Create delivery
+- `GET /entrega-bodycams/{id}` - View delivery
+- `GET /entrega-bodycams/{id}/devolver` - Return bodycams
+- `GET /entrega-bodycams/exportar/excel` - Export deliveries
+
+## Models
+
+### Bodycam Model
+
+Represents a body-worn camera device.
+
+**Constants**
+
+- `ESTADO_DISPONIBLE = 'disponible'`
+- `ESTADO_ENTREGADA = 'entregada'`
+- `ESTADO_PERDIDA = 'perdida'`
+- `ESTADO_MANTENIMIENTO = 'mantenimiento'`
+- `ESTADO_DADA_BAJA = 'dada_baja'`
+
+**Relationships**
+
+- `entregasActuales` - BelongsToMany EntregaBodycam (current deliveries)
+- `entregasHistoricas` - BelongsToMany EntregaBodycam (all deliveries)
+- `detalleEntregas` - HasMany DetalleEntregaBodycam
+- `detalleDevoluciones` - HasMany DetalleDevolucionBodycam
+
+**Source Code Reference**
+
+Controller: `app/Http/Controllers/BodycamController.php:1-114`
+
+Model: `app/Models/Bodycam.php:1-132`

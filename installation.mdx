@@ -1,0 +1,185 @@
+---
+title: Installation
+description: Install and set up C.A.R. 911 on your server with PHP, Composer, and MySQL
+---
+
+## System requirements
+
+Before installing C.A.R. 911, ensure your system meets the following requirements:
+
+### PHP version
+
+- PHP 7.3 or higher (PHP 8.0+ supported)
+- Required PHP extensions:
+  - OpenSSL
+  - PDO
+  - Mbstring
+  - Tokenizer
+  - XML
+  - Ctype
+  - JSON
+  - BCMath
+
+### Database
+
+- MySQL 5.7+ or MariaDB 10.3+
+
+### Package manager
+
+- Composer (latest stable version recommended)
+
+<Note>
+C.A.R. 911 is built on Laravel 8.75, which requires PHP 7.3 as the minimum version. For optimal performance and security, we recommend using PHP 8.0 or higher.
+</Note>
+
+## Installation steps
+
+Follow these steps to install C.A.R. 911 on your server:
+
+<Steps>
+  <Step title="Install dependencies">
+    Navigate to the project directory and install all PHP dependencies using Composer:
+
+    ```bash
+    composer install
+    ```
+
+    This will install the Laravel framework along with required packages including:
+    - Laravel Sanctum for API authentication
+    - Spatie Laravel Permission for role management
+    - Maatwebsite Excel for report exports
+    - PHPWord for document generation
+  </Step>
+
+  <Step title="Create environment file">
+    Copy the example environment file to create your configuration:
+
+    ```bash
+    cp .env.example .env
+    ```
+
+    This creates a new `.env` file where you'll configure your application settings.
+  </Step>
+
+  <Step title="Generate application key">
+    Generate a unique encryption key for your application:
+
+    ```bash
+    php artisan key:generate
+    ```
+
+    This command automatically updates your `.env` file with a secure `APP_KEY` value.
+  </Step>
+
+  <Step title="Configure database connection">
+    Open your `.env` file and update the database configuration:
+
+    ```bash
+    DB_CONNECTION=mysql
+    DB_HOST=127.0.0.1
+    DB_PORT=3306
+    DB_DATABASE=car_911
+    DB_USERNAME=your_database_user
+    DB_PASSWORD=your_database_password
+    ```
+
+    <Warning>
+    Ensure your database user has sufficient privileges to create tables, indexes, and foreign keys.
+    </Warning>
+  </Step>
+
+  <Step title="Run migrations and seed data">
+    Initialize the database schema and populate it with default data:
+
+    ```bash
+    php artisan migrate --seed
+    ```
+
+    This command will:
+    - Create all necessary database tables
+    - Set up the permission and role structure
+    - Seed initial data for testing and development
+  </Step>
+</Steps>
+
+## Verify installation
+
+After completing the installation steps, verify that C.A.R. 911 is working correctly:
+
+### Start the development server
+
+```bash
+php artisan serve
+```
+
+The application should now be accessible at `http://localhost:8000`.
+
+### Check the database connection
+
+Verify that your database is properly configured:
+
+```bash
+php artisan migrate:status
+```
+
+This command displays the status of all migrations and confirms database connectivity.
+
+## Key packages installed
+
+C.A.R. 911 includes several important packages that power its functionality:
+
+<CodeGroup>
+
+```json composer.json (Core packages)
+{
+  "require": {
+    "php": "^7.3|^8.0",
+    "laravel/framework": "^8.75",
+    "laravel/sanctum": "^2.11",
+    "spatie/laravel-permission": "^5.5"
+  }
+}
+```
+
+```json composer.json (Additional packages)
+{
+  "require": {
+    "maatwebsite/excel": "^3.1",
+    "phpoffice/phpword": "^0.18.3",
+    "larswiegers/laravel-maps": "*",
+    "laravelcollective/html": "^6.3"
+  }
+}
+```
+
+</CodeGroup>
+
+## Troubleshooting
+
+### Composer memory limit
+
+If you encounter memory limit errors during `composer install`, increase PHP's memory limit:
+
+```bash
+php -d memory_limit=-1 /usr/local/bin/composer install
+```
+
+### Permission errors
+
+Ensure the web server has write permissions to storage and cache directories:
+
+```bash
+chmod -R 775 storage bootstrap/cache
+chown -R www-data:www-data storage bootstrap/cache
+```
+
+### Migration failures
+
+If migrations fail, check that:
+- Your database credentials are correct in `.env`
+- The database exists and is accessible
+- Your database user has CREATE, ALTER, and DROP privileges
+
+## Next steps
+
+Now that C.A.R. 911 is installed, proceed to configure your environment variables and application settings.

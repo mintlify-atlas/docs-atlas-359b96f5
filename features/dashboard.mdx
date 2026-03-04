@@ -1,0 +1,170 @@
+---
+title: Dashboard
+description: Monitor real-time equipment status, fleet distribution, and system analytics across your organization
+---
+
+The Dashboard provides a comprehensive overview of your C.A.R. 911 system with real-time statistics, equipment status tracking, and fleet distribution analytics. You can monitor equipment across all departments, divisions, and dependencies at a glance.
+
+## Overview
+
+The Dashboard serves as your command center, displaying:
+
+- Real-time equipment counts by status (functional, non-functional, under review)
+- Fleet distribution across departments and divisions
+- Equipment by provider (Patagonia Green, Telecom, Policía de Entre Ríos)
+- Stock levels and available equipment
+- Partial uninstallations and equipment in transit
+
+## Key Metrics
+
+<CardGroup cols={2}>
+  <Card title="Functional Equipment" icon="circle-check">
+    View all equipment in working condition (New, Used, Repaired). Track availability by brand, model, and location.
+  </Card>
+  <Card title="Equipment Status" icon="chart-pie">
+    Monitor equipment in different states: stock, in-use, non-functional, decommissioned, lost, or under review.
+  </Card>
+  <Card title="Fleet Distribution" icon="map-location-dot">
+    See equipment distribution across departments, divisions, and police stations in real-time.
+  </Card>
+  <Card title="Provider Analytics" icon="truck">
+    Track equipment by provider with detailed breakdowns by status and location.
+  </Card>
+</CardGroup>
+
+## Equipment Status Categories
+
+The Dashboard tracks equipment in the following states:
+
+<Accordion title="Functional Equipment">
+  Equipment in operational condition:
+  - **New**: Brand new equipment ready for deployment
+  - **Used**: Equipment currently in active use
+  - **Repaired**: Equipment that has been serviced and returned to operational status
+  
+  View counts by brand, model, category, and provider. See how many units are in stock vs. in active use.
+</Accordion>
+
+<Accordion title="Non-Functional Equipment">
+  Equipment that is not operational:
+  - Grouped by brand, model, and provider
+  - Includes equipment awaiting repair
+  - Shows total count of units requiring attention
+</Accordion>
+
+<Accordion title="Decommissioned Equipment">
+  Equipment removed from service:
+  - **Decommissioned**: Permanently removed from inventory
+  - **Lost**: Equipment reported as missing
+  - **Replacement**: Units designated as spare parts
+  
+  Tracked separately to maintain accurate inventory records.
+</Accordion>
+
+<Accordion title="Equipment Under Review">
+  Equipment undergoing evaluation or maintenance:
+  - Shows units temporarily removed from active service
+  - Groups by brand and model
+  - Tracks count and provider information
+</Accordion>
+
+## Location-Based Views
+
+### Stock 911
+View all equipment currently in central stock ("Stock 911"):
+- Equipment details (TEI, ISSI, brand, model)
+- Assignment history
+- Previous resource allocation
+- Assignment dates and timestamps
+
+### Departmental Distribution
+Track equipment assigned to "Departamental Paraná (JDP)" and all subordinate units:
+- Real-time equipment count
+- Resource assignments
+- Vehicle associations
+- Equipment status filtering (excludes non-functional units)
+
+### Division Views
+
+<Steps>
+  <Step title="División 911 y Videovigilancia">
+    Monitor equipment assigned to the 911 and Video Surveillance Division, including all subordinate units and resources.
+  </Step>
+  <Step title="División Seguridad Urbana y Bancaria">
+    Track equipment deployed to the Urban and Banking Security Division across all associated departments.
+  </Step>
+</Steps>
+
+### Patagonia Green Location
+View equipment at the Patagonia Green facility:
+- Equipment count and details
+- Assignment records
+- Resource allocations
+- Historical tracking
+
+## Provider Analytics
+
+Track equipment by provider with detailed status breakdowns:
+
+**Patagonia Green**
+- Equipment grouped by status and model
+- Total counts across all statuses
+- Brand and model distribution
+
+**Telecom**
+- Provider-specific equipment tracking
+- Status-based grouping
+- Model and brand analytics
+
+**Policía de Entre Ríos**
+- Internal fleet tracking
+- Complete status breakdown
+- Equipment lifecycle monitoring
+
+<Info>
+  All provider views include both status-specific counts and total equipment counts for comprehensive tracking.
+</Info>
+
+## Vehicle and Resource Tracking
+
+### Mobile Units
+Track vehicles (cars and trucks) in the fleet:
+- Vehicle type and details
+- Resource name
+- Assigned department
+- Current location
+
+### Motorcycles
+Monitor motorcycle units separately:
+- Complete motorcycle inventory
+- Department assignments
+- Resource tracking
+
+## Partial Uninstallations
+
+View equipment with partial uninstallation status:
+- Most recent movement for each unit
+- TEI and ISSI identification
+- Assignment dates
+- Movement type tracking
+
+<Note>
+  The Dashboard automatically refreshes data and shows only the latest status for each equipment unit. Historical data is accessible through the fleet management section.
+</Note>
+
+## Data Accuracy
+
+The Dashboard uses caching mechanisms for optimal performance:
+- Equipment status IDs are cached to reduce database queries
+- Real-time calculations for equipment distribution
+- Automatic exclusion of non-functional equipment from active counts
+- Join queries across multiple tables for comprehensive views
+
+## Quick Actions
+
+From the Dashboard, you can quickly:
+- Filter equipment by status, location, or provider
+- View detailed equipment information
+- Navigate to specific departments or divisions
+- Export data for reporting
+- Access equipment history and movement records

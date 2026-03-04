@@ -1,0 +1,107 @@
+---
+title: CECOCO Overview
+description: Learn about the Centro de Comando y Control (CECOCO) - the command and control center that provides real-time monitoring and coordination of emergency services
+---
+
+## What is CECOCO?
+
+CECOCO (Centro de Comando y Control) is the command and control center of C.A.R. 911. It provides real-time monitoring and coordination capabilities for emergency response operations, enabling operators to track mobile units, manage incidents, and monitor emergency calls.
+
+<Info>
+CECOCO integrates GPS tracking, incident management, and call monitoring into a unified platform for emergency service coordination.
+</Info>
+
+## Core Capabilities
+
+CECOCO provides three main operational modules:
+
+<CardGroup cols={3}>
+  <Card title="Live Map" icon="map" href="/cecoco/live-map">
+    Real-time visualization of mobile units and active incidents on an interactive map
+  </Card>
+  
+  <Card title="Resource Tracking" icon="car" href="/cecoco/resource-tracking">
+    Monitor mobile unit locations, routes, and stopped intervals
+  </Card>
+  
+  <Card title="Call Management" icon="phone">
+    Track and review emergency calls with audio recordings
+  </Card>
+</CardGroup>
+
+## Access Control
+
+CECOCO features are protected by role-based permissions:
+
+```php
+function __construct()
+{
+    $this->middleware('permission:ver-moviles-cecoco')->only('indexMoviles');
+    $this->middleware('permission:ver-llamadas-cecoco')->only('indexLlamadas');
+    $this->middleware('permission:ver-eventos-cecoco')->only('indexLlamadas');
+}
+```
+
+You need the following permissions to access CECOCO features:
+
+- **ver-moviles-cecoco**: View mobile unit tracking and routes
+- **ver-llamadas-cecoco**: Access call logs and recordings
+- **ver-eventos-cecoco**: View incident and event data
+
+<Note>
+Contact your system administrator to request access to CECOCO features if you don't have the required permissions.
+</Note>
+
+## Database Connections
+
+CECOCO queries data from a secondary database connection (`mysql_second`) that contains:
+
+- **posicionesgps**: GPS position logs for mobile units
+- **ultimasposicionesgps**: Latest GPS positions for real-time tracking
+- **recursos**: Mobile resource information (vehicles, units)
+- **servicios**: Incident and service records
+- **llamadas**: Emergency call logs
+- **grabacionesoperador**: Call audio recordings
+
+## Main Routes
+
+Access CECOCO features through these routes:
+
+| Route | Purpose | Controller Method |
+|-------|---------|------------------|
+| `/indexMapaCecocoEnVivo` | Live map view | `indexMapaCecocoEnVivo()` |
+| `/indexMoviles` | Mobile unit tracking | `indexMoviles()` |
+| `/indexLlamadas` | Call management | `indexLlamadas()` |
+| `/indexMapaCalor` | Heat map visualization | `indexMapaCalor()` |
+| `/getRecursosCecoco` | Get resources data | `getRecursosCecoco()` |
+| `/get-moviles` | Get mobile routes | `getRecorridosMoviles()` |
+| `/get-moviles-parados` | Get stopped intervals | `obtenerIntervalosParado()` |
+
+## Implementation Reference
+
+The CECOCO functionality is implemented in:
+
+**CecocoController.php:10-20**
+```php
+class CecocoController extends Controller
+{
+    function __construct()
+    {
+        $this->middleware('permission:ver-moviles-cecoco')->only('indexMoviles');
+        $this->middleware('permission:ver-llamadas-cecoco')->only('indexLlamadas');
+        $this->middleware('permission:ver-eventos-cecoco')->only('indexLlamadas');
+    }
+}
+```
+
+## Next Steps
+
+<CardGroup cols={2}>
+  <Card title="Explore Live Map" icon="map-location-dot" href="/cecoco/live-map">
+    Learn how to use the real-time mapping feature
+  </Card>
+  
+  <Card title="Track Resources" icon="route" href="/cecoco/resource-tracking">
+    Monitor mobile units and analyze their movements
+  </Card>
+</CardGroup>

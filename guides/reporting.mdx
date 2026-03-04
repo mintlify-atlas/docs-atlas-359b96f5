@@ -1,0 +1,304 @@
+---
+title: 'Report Generation'
+description: 'Generate Excel exports and Word documents for equipment, cameras, and fleet data'
+---
+
+## Overview
+
+C.A.R. 911 provides powerful reporting capabilities using Maatwebsite Excel for spreadsheet exports and PhpWord for document generation. You can export filtered data to Excel with custom formatting, styling, and filters, or generate Word documents for official records.
+
+## Excel Export System
+
+The system uses Maatwebsite Excel library to create formatted, filterable Excel spreadsheets with automatic styling.
+
+### Equipment Export
+
+Export equipment data with comprehensive filtering and formatting:
+
+<Steps>
+  <Step title="Create Export Class">
+    The `EquiposExport` class handles data collection and formatting:
+
+    ```php
+    // Export: app/Exports/EquiposExport.php:19
+    class EquiposExport implements FromCollection, WithHeadings, 
+                                   WithEvents, ShouldAutoSize, WithMapping
+    {
+        protected $filters = [];
+        
+        public function __construct(array $filters = [])
+        {
+            $this->filters = $this->normalizeFilters($filters);
+        }
+    }
+    ```
+  </Step>
+
+  <Step title="Apply Filters">
+    Export classes support multiple filter types:
+
+    ```php
+    // Export: app/Exports/EquiposExport.php:30-44
+    private function normalizeFilters(array $filters): array
+    {
+        return [
+            'texto' => trim((string) $filters['texto'] ?? ''),
+            'equipo_id' => (array) ($filters['equipo_id'] ?? []),
+            'recurso_id' => (array) ($filters['recurso_id'] ?? []),
+            'destino_id' => (array) ($filters['destino_id'] ?? []),
+            'estado_id' => (array) ($filters['estado_id'] ?? []),
+            'destino_actual_id' => (array) ($filters['destino_actual_id'] ?? []),
+            'tipo_terminal_id' => (array) ($filters['tipo_terminal_id'] ?? []),
+            'fecha_rango' => trim((string) $filters['fecha_rango'] ?? ''),
+            'ticket_per' => trim((string) $filters['ticket_per'] ?? ''),
+            'observaciones' => trim((string) $filters['observaciones'] ?? ''),
+        ];
+    }
+    ```
+  </Step>
+
+  <Step title="Define Column Headings">
+    Customize the Excel header row:
+
+    ```php
+    // Export: app/Exports/EquiposExport.php:238-258
+    public function headings(): array
+    {
+        return [
+            'Nro',
+            'Terminal',
+            'Estado',
+            'Provisto',
+            'Dependencia',
+            'ID ISSI',
+            'ISSI',
+            'TEI',
+            'Recurso',
+            'Dependencia Superior',
+            'Fecha Asignación',
+            'Ticket PER',
+            'Vehículo Marca',
+            'Vehículo Modelo',
+            'Dominio',
+            'Observaciones'
+        ];
+    }
+    ```
+  </Step>
+
+  <Step title="Apply Formatting">
+    Style the spreadsheet with custom formatting:
+
+    ```php
+    // Export: app/Exports/EquiposExport.php:262-301
+    public function registerEvents(): array
+    {
+        return [
+            AfterSheet::class => function (AfterSheet $event) {
+                $lastColumn = $event->sheet->getHighestColumn();
+                $headerRange = 'A1:' . $lastColumn . '1';
+
+                // Header styling
+                $event->sheet->getStyle($headerRange)
+                    ->getFont()->setSize(14)->setBold(true);
+                
+                // Center headers
+                $event->sheet->getStyle($headerRange)
+                    ->getAlignment()
+                    ->setHorizontal(Alignment::HORIZONTAL_CENTER);
+
+                // Enable auto-filter
+                $event->sheet->setAutoFilter($headerRange);
+
+                // Freeze header row
+                $event->sheet->freezePane('A2');
+            }
+        ];
+    }
+    ```
+  </Step>
+</Steps>
+
+### Camera Export
+
+Export camera data with location information:
+
+```php
+// Export: app/Exports/CamarasExport.php:16-49
+public function collection()
+{
+    $camaras = Camara::select(
+        'camaras.id',
+        'camaras.ip',
+        'camaras.nombre',
+        'sitio.nombre as sitio',
+        'camaras.inteligencia',
+        'tipo_camara.tipo as tipo_camara',
+        'tipo_camara.marca as marca',
+        'tipo_camara.modelo as modelo',
+        'camaras.etapa',
+        'sitio.latitud as latitud',
+        'sitio.longitud as longitud',
+        'camaras.fecha_instalacion',
+        'destino.nombre as dependencia',
+        'sitio.localidad as localidad',
+        'sitio.cartel as cartel'
+    )
+    ->leftJoin('sitio', 'camaras.sitio_id', '=', 'sitio.id')
+    ->leftJoin('tipo_camara', 'camaras.tipo_camara_id', '=', 'tipo_camara.id')
+    ->leftJoin('destino', 'sitio.destino_id', '=', 'destino.id')
+    ->get();
+
+    // Transform boolean values
+    $camaras->map(function ($sitio) {
+        $sitio->cartel = $sitio->cartel ? 'SI' : 'NO';
+        return $sitio;
+    });
+
+    return $camaras;
+}
+```
+
+### Triggering Exports
+
+You trigger exports through controller methods:
+
+```php
+// Controller: app/Http/Controllers/EquipoController.php:193
+public function exportExcel()
+{
+    return Excel::download(new EquiposExport($request->all()), 
+                          'equipos.xlsx');
+}
+```
+
+## Word Document Generation
+
+Generate official Word documents using PhpWord for equipment delivery receipts and reports.
+
+### Basic Document Generation
+
+<Accordion title="Generate Simple Document">
+  Create a Word document programmatically:
+
+  ```php
+  // Controller: app/Http/Controllers/FlotaGeneralController.php:322-439
+  public function generateDocx($id)
+  {
+      $rec_de_flota = FlotaGeneral::find($id);
+      
+      $phpWord = new PhpWord();
+      
+      // Add paragraph style
+      $phpWord->addParagraphStyle('pStyle', [
+          'alignment' => Jc::CENTER,
+          'spacing' => 100
+      ]);
+      
+      // Add font style
+      $phpWord->addFontStyle('BoldText', [
+          'bold' => true,
+          'size' => 5
+      ]);
+      
+      // Create section
+      $section = $phpWord->addSection();
+      
+      // Add header with images
+      $header = $section->addHeader();
+      $textrun = $header->addTextRun('pStyle');
+      $textrun->addImage($logoPER, ['width' => 35, 'height' => 35]);
+      $textrun->addText($encabezado, 'BoldText');
+      $textrun->addImage($logo911, ['width' => 35, 'height' => 35]);
+      
+      // Add content
+      $section->addText($descripcion);
+      
+      // Save document
+      $objWriter = new Word2007($phpWord);
+      $objWriter->save(storage_path($filename));
+      
+      return response()->download(storage_path($filename));
+  }
+  ```
+</Accordion>
+
+### Template-Based Generation
+
+<Accordion title="Use Word Template">
+  Generate documents from pre-existing templates:
+
+  ```php
+  // Controller: app/Http/Controllers/FlotaGeneralController.php:442-539
+  public function generateDocxConTemplate($id)
+  {
+      $rec_de_flota = FlotaGeneral::find($id);
+      
+      // Load template
+      $templateWord = new TemplateProcessor(
+          storage_path("template.docx")
+      );
+      
+      // Set simple values
+      $templateWord->setValue('dia', $dia);
+      $templateWord->setValue('mes', $mes);
+      $templateWord->setValue('anio', $anio);
+      $templateWord->setValue('destino', $destino);
+      
+      // Set complex values with formatting
+      $marcaNegrita = new TextRun();
+      $marcaNegrita->addText($marca, [
+          'size' => 12, 
+          'bold' => true
+      ]);
+      $templateWord->setComplexValue('marca', $marcaNegrita);
+      
+      // Save as new document
+      $templateWord->saveAs(storage_path($filename));
+      
+      return response()->download(storage_path($filename));
+  }
+  ```
+</Accordion>
+
+## Advanced Search Export
+
+Export results from advanced search with custom filters:
+
+<Tip>
+The advanced search export route allows you to export filtered results directly.
+</Tip>
+
+```php
+// Routes: routes/web.php:111-112
+Route::get('/busqueda-avanzada', 
+    [FlotaGeneralController::class, 'busquedaAvanzada'])
+    ->name('flota.busquedaAvanzada');
+
+Route::get('/busqueda-avanzada/export-excel', 
+    [FlotaGeneralController::class, 'exportExcelBusquedaAvanzada'])
+    ->name('flota.busquedaAvanzada.export');
+```
+
+## Export Routes
+
+All export routes are protected by authentication:
+
+```php
+// Routes: routes/web.php:134-138
+Route::get('/export-camaras', 
+    [CamaraController::class, 'exportExcel'])
+    ->name('camaras.export');
+
+Route::get('/export-sitios', 
+    [SitioController::class, 'exportExcel'])
+    ->name('sitios.export');
+
+Route::get('/export-equipos', 
+    [EquipoController::class, 'exportExcel'])
+    ->name('equipos.export');
+```
+
+<Note>
+All export functionality requires authentication and appropriate permissions.
+</Note>

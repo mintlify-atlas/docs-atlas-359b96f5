@@ -1,0 +1,173 @@
+---
+title: 'Audit Logging'
+description: 'Track and review all system changes with comprehensive audit trails'
+---
+
+## Overview
+
+C.A.R. 911 maintains a complete audit log of all system changes, allowing you to track who made what changes and when. The audit system automatically records modifications to critical resources including users, fleets, equipment, cameras, and organizational units.
+
+## Viewing Audit Logs
+
+You access the audit log through the audit controller, which provides comprehensive filtering capabilities.
+
+### Required Permission
+
+<Note>
+You need the `ver-auditoria` permission to view audit logs.
+</Note>
+
+### Available Filters
+
+The audit log interface provides multiple filter options to help you find specific changes:
+
+<Steps>
+  <Step title="Filter by Text">
+    Search for specific actions or changes by entering text that matches the action description or change details.
+
+    ```php
+    // Controller: app/Http/Controllers/AuditoriaController.php:28-33
+    if ($texto) {
+        $query->where(function ($q) use ($texto) {
+            $q->where('accion', 'LIKE', '%' . $texto . '%')
+                ->orWhere('cambios', 'LIKE', '%' . $texto . '%');
+        });
+    }
+    ```
+  </Step>
+
+  <Step title="Filter by Table">
+    View changes to a specific resource type by selecting from the table dropdown. The system tracks changes to:
+    - Users (usuarios)
+    - Fleets (flota_general)
+    - Equipment (equipos)
+    - Cameras (camaras)
+    - Organizational units (destino)
+    - And more
+
+    ```php
+    // Controller: app/Http/Controllers/AuditoriaController.php:36-38
+    if ($tabla) {
+        $query->where('nombre_tabla', $tabla);
+    }
+    ```
+  </Step>
+
+  <Step title="Filter by User">
+    See all changes made by a specific user by selecting them from the user dropdown.
+
+    ```php
+    // Controller: app/Http/Controllers/AuditoriaController.php:40-43
+    if ($usuario) {
+        $query->where('user_id', $usuario);
+    }
+    ```
+  </Step>
+
+  <Step title="Filter by Date Range">
+    Narrow down results to a specific time period using the date range filters.
+
+    ```php
+    // Controller: app/Http/Controllers/AuditoriaController.php:45-51
+    if ($fecha_desde) {
+        $query->whereDate('created_at', '>=', $fecha_desde);
+    }
+    if ($fecha_hasta) {
+        $query->whereDate('created_at', '<=', $fecha_hasta);
+    }
+    ```
+  </Step>
+</Steps>
+
+## Understanding Audit Records
+
+Each audit record contains the following information:
+
+<Accordion title="Audit Record Fields">
+  The `auditoria` table stores:
+
+  - `user_id` - Who made the change
+  - `nombre_tabla` - Which table was modified
+  - `accion` - What action was performed (create, update, delete)
+  - `cambios` - Detailed JSON of what changed
+  - `created_at` - When the change occurred
+  - Resource-specific foreign keys (e.g., `usuario_modificado_id`, `flota_modificado_id`)
+
+  ```php
+  // Model: app/Models/Auditoria.php:11-30
+  protected $fillable = [
+      'user_id',
+      'usuario_modificado_id',
+      'flota_modificado_id',
+      'act_pol_modificado_id',
+      'camara_modificado_id',
+      'comisaria_modificado_id',
+      'departamental_modificado_id',
+      'destino_modificado_id',
+      'division_modificado_id',
+      'direccion_modificado_id',
+      'empresa_sop_modificado_id',
+      'equipo_modificado_id',
+      'historico_modificado_id',
+      'recurso_modificado_id',
+      'seccion_modificado_id',
+      'vehiculo_modificado_id',
+      'nombre_tabla',
+      'cambios',
+      'accion'
+  ];
+  ```
+</Accordion>
+
+## Audit Log Relationships
+
+The audit model provides relationships to view related records:
+
+```php
+// Model: app/Models/Auditoria.php:32-51
+public function user(){
+    return $this->belongsTo(User::class);
+}
+
+public function usuarioModificado()
+{
+    return $this->belongsTo(User::class, 'usuario_modificado_id');
+}
+
+public function flotaModificada()
+{
+    return $this->belongsTo(FlotaGeneral::class, 'flota_modificado_id');
+}
+
+public function historicoModificado()
+{
+    return $this->belongsTo(Historico::class, 'historico_modificado_id');
+}
+
+public function recursoModificado()
+{
+    return $this->belongsTo(Recurso::class, 'recurso_modificado_id');
+}
+```
+
+## Pagination and Sorting
+
+<Tip>
+Audit logs are displayed 20 records per page and sorted by most recent first.
+</Tip>
+
+```php
+// Controller: app/Http/Controllers/AuditoriaController.php:54
+$auditorias = $query->orderBy('id', 'desc')->paginate(20);
+```
+
+## Route Configuration
+
+You access audit logs through the resource route:
+
+```php
+// Routes: routes/web.php:80
+Route::resource('auditoria', AuditoriaController::class);
+```
+
+This creates the standard route: `/auditoria`

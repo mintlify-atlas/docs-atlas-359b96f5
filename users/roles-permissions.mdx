@@ -1,0 +1,305 @@
+---
+title: Roles and Permissions
+description: Understand how to manage roles and permissions in C.A.R. 911 using the Spatie Laravel Permission package.
+---
+
+C.A.R. 911 uses the [Spatie Laravel Permission](https://spatie.be/docs/laravel-permission) package to manage user roles and permissions. This provides a flexible and powerful system for controlling access to different parts of the application.
+
+## Spatie Permission Package
+
+The application uses Spatie Laravel Permission version 5.5:
+
+```json
+"spatie/laravel-permission": "^5.5"
+```
+
+Reference: composer.json:24
+
+### User Model Configuration
+
+The User model includes the `HasRoles` trait to enable role and permission functionality:
+
+```php
+use Spatie\Permission\Traits\HasRoles;
+
+class User extends Authenticatable
+{
+    use HasApiTokens, HasFactory, Notifiable, HasRoles;
+}
+```
+
+Reference: app/Models/User.php:12-16
+
+## Role Management
+
+Roles are managed through the `RolController`, which provides full CRUD operations.
+
+### Role Controller Permissions
+
+The controller uses middleware to restrict access based on permissions:
+
+```php
+function __construct(){
+    $this->middleware('permission:ver-rol|crear-rol|editar-rol|borrar-rol', ['only'=>['index']]);
+    $this->middleware('permission:crear-rol', ['only'=>['create', 'store']]);
+    $this->middleware('permission:editar-rol', ['only'=>['edit', 'update']]);
+    $this->middleware('permission:borrar-rol', ['only'=>['destroy']]);
+}
+```
+
+Reference: app/Http/Controllers/RolController.php:13-18
+
+### Permission Types
+
+The system uses four main permission types for role management:
+
+<ParamField path="ver-rol" type="string">
+  View and list all roles in the system
+</ParamField>
+
+<ParamField path="crear-rol" type="string">
+  Create new roles and assign permissions
+</ParamField>
+
+<ParamField path="editar-rol" type="string">
+  Edit existing roles and update their permissions
+</ParamField>
+
+<ParamField path="borrar-rol" type="string">
+  Delete roles from the system
+</ParamField>
+
+## Working with Roles
+
+### Listing Roles
+
+Retrieve all roles with pagination:
+
+```php
+public function index()
+{
+    $roles = Role::paginate(100);
+    return view('roles.index', compact('roles'));
+}
+```
+
+Reference: app/Http/Controllers/RolController.php:25-29
+
+### Creating a Role
+
+<Steps>
+  <Step title="Load Create Form">
+    The create method retrieves all available permissions:
+    
+    ```php
+    public function create()
+    {
+        $permission = Permission::get();
+        return view('roles.crear', compact('permission'));
+    }
+    ```
+    
+    Reference: app/Http/Controllers/RolController.php:36-41
+  </Step>
+  
+  <Step title="Validate Input">
+    The store method validates that both name and permissions are provided:
+    
+    ```php
+    $this->validate($request, [
+        'name' => 'required', 
+        'permission' => 'required'
+    ]);
+    ```
+    
+    Reference: app/Http/Controllers/RolController.php:52
+  </Step>
+  
+  <Step title="Create and Sync Permissions">
+    Create the role and sync permissions in one operation:
+    
+    ```php
+    $role = Role::create(['name' => $request->input('name')]);
+    $role->syncPermissions($request->input('permission'));
+    
+    return redirect()->route('roles.index');
+    ```
+    
+    Reference: app/Http/Controllers/RolController.php:53-56
+  </Step>
+</Steps>
+
+### Editing a Role
+
+To edit a role, you need to retrieve the role, all permissions, and the role's current permissions:
+
+```php
+public function edit($id)
+{
+    $role = Role::find($id);
+    $permission = Permission::get();
+    $rolePermissions = DB::table("role_has_permissions")
+        ->where("role_has_permissions.role_id", $id)
+        ->pluck('role_has_permissions.permission_id','role_has_permissions.permission_id')
+        ->all();
+    
+    return view('roles.editar', compact('role','permission','rolePermissions'));
+}
+```
+
+Reference: app/Http/Controllers/RolController.php:77-86
+
+### Updating a Role
+
+Update the role name and sync new permissions:
+
+```php
+public function update(Request $request, $id)
+{
+    $this->validate($request, [
+        'name' => 'required',
+        'permission' => 'required',
+    ]);
+    
+    $role = Role::find($id);
+    $role->name = $request->input('name');
+    $role->save();
+    
+    $role->syncPermissions($request->input('permission'));
+    
+    return redirect()->route('roles.index');
+}
+```
+
+Reference: app/Http/Controllers/RolController.php:95-109
+
+<Note>
+The `syncPermissions()` method automatically removes old permissions and assigns new ones, ensuring the role has exactly the permissions specified.
+</Note>
+
+### Deleting a Role
+
+Delete a role from the database:
+
+```php
+public function destroy($id)
+{
+    DB::table('roles')->where('id', $id)->delete();
+    return redirect()->route('roles.index');
+}
+```
+
+Reference: app/Http/Controllers/RolController.php:117-122
+
+<Warning>
+Deleting a role will affect all users assigned to that role. Ensure you reassign users before deleting important roles.
+</Warning>
+
+## Permission System
+
+Permissions are managed using Spatie's Permission model:
+
+```php
+use Spatie\Permission\Models\Role;
+use Spatie\Permission\Models\Permission;
+```
+
+Reference: app/Http/Controllers/RolController.php:7-8
+
+### Database Structure
+
+The permission system uses the following tables:
+
+- `roles` - Stores role definitions
+- `permissions` - Stores permission definitions
+- `role_has_permissions` - Links roles to permissions
+- `model_has_roles` - Links users to roles
+
+## Routes for Role Management
+
+Role management routes are protected by authentication:
+
+```php
+Route::group(['middleware' => ['auth']], function () {
+    Route::resource('roles', RolController::class);
+});
+```
+
+Reference: routes/web.php:52-53
+
+This creates the following routes:
+- `GET /roles` - List all roles
+- `GET /roles/create` - Show create form
+- `POST /roles` - Store new role
+- `GET /roles/{id}/edit` - Show edit form
+- `PUT /roles/{id}` - Update role
+- `DELETE /roles/{id}` - Delete role
+
+## Assigning Roles to Users
+
+Roles are assigned when creating or updating users through the `UsuarioController`:
+
+```php
+// When creating a user
+$user = User::create($input);
+$user->assignRole($request->input('roles'));
+```
+
+Reference: app/Http/Controllers/UsuarioController.php:72-73
+
+```php
+// When updating a user
+$user = User::find($id);
+$user->update($input);
+DB::table('model_has_roles')->where('model_id', $id)->delete();
+$user->assignRole($request->input('roles'));
+```
+
+Reference: app/Http/Controllers/UsuarioController.php:131-136
+
+<Note>
+When updating user roles, the system first removes all existing role assignments before assigning new ones to ensure consistency.
+</Note>
+
+## Checking Permissions in Controllers
+
+You can protect controller methods using permission middleware:
+
+```php
+$this->middleware('permission:ver-rol|crear-rol', ['only'=>['index']]);
+```
+
+This ensures only users with the specified permissions can access those methods.
+
+## Role Display Utilities
+
+The User model includes a helper method to get role colors:
+
+```php
+public function getRoleColor($roleName) {
+    $role = \Spatie\Permission\Models\Role::where('name', $roleName)->first();
+    return $role ? $role->color : null;
+}
+```
+
+Reference: app/Models/User.php:57-60
+
+## Best Practices
+
+<Steps>
+  <Step title="Plan Your Permissions">
+    Define clear, granular permissions for each feature (e.g., `ver-rol`, `crear-rol`, `editar-rol`, `borrar-rol`).
+  </Step>
+  
+  <Step title="Use Middleware Protection">
+    Always protect routes and controller methods with appropriate permission checks.
+  </Step>
+  
+  <Step title="Sync Permissions Carefully">
+    When updating roles, use `syncPermissions()` to ensure the role has exactly the permissions you intend.
+  </Step>
+  
+  <Step title="Test Permission Changes">
+    After modifying roles or permissions, test with different user accounts to verify access control works correctly.
+  </Step>
+</Steps>

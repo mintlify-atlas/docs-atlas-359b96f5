@@ -1,0 +1,382 @@
+---
+title: Resource Tracking
+description: Monitor mobile unit locations, analyze routes, and identify stopped intervals to optimize emergency response operations
+---
+
+## Overview
+
+The resource tracking module enables you to monitor mobile units (patrol vehicles, emergency responders), analyze their movements, and identify operational patterns. This helps optimize resource allocation and response times.
+
+<Info>
+Resource tracking uses GPS telemetry from the `posicionesgps` database table to provide detailed movement analysis.
+</Info>
+
+## Accessing Resource Tracking
+
+Navigate to the mobile units interface:
+
+```
+GET /indexMoviles
+```
+
+**CecocoController.php:22-33**
+```php
+public function indexMoviles()
+{
+    // Obtener los recursos únicos
+    $recursos = DB::connection('mysql_second')
+        ->table('posicionesgps')
+        ->distinct()
+        ->pluck('recurso')
+        ->toArray();
+
+    return view('cecoco.moviles.index', compact('recursos'));
+}
+```
+
+This displays all available mobile resources from the GPS tracking system.
+
+<Note>
+You must have the `ver-moviles-cecoco` permission to access resource tracking features.
+</Note>
+
+## Tracking Mobile Routes
+
+Retrieve the complete route history for one or more mobile units:
+
+```
+POST /get-moviles
+```
+
+### Request Parameters
+
+**CecocoController.php:225-231**
+```php
+request()->validate([
+    'recursos' => 'required|not_in:Seleccionar recurso',
+    'fecha_desde' => 'required',
+    'fecha_hasta' => 'required',
+], [
+    'required' => 'El campo :attribute es necesario completar.'
+]);
+```
+
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| `recursos` | array | Yes | JSON array of resource IDs to track |
+| `fecha_desde` | datetime | Yes | Start date/time for tracking period |
+| `fecha_hasta` | datetime | Yes | End date/time for tracking period |
+
+### Implementation
+
+**CecocoController.php:233-253**
+```php
+$fecha_desde = \Carbon\Carbon::parse($request->fecha_desde)->format('Y-m-d H:i:s');
+$fecha_hasta = \Carbon\Carbon::parse($request->fecha_hasta)->format('Y-m-d H:i:s');
+$coordinates = [];
+$results = DB::connection('mysql_second')
+    ->table('posicionesgps')
+    ->whereIn('recurso', json_decode($request->recursos))
+    ->whereBetween('fecha', [$fecha_desde, $fecha_hasta])
+    ->get()
+    ->map(function ($result) use (&$coordinates) {
+        // Convertir las coordenadas de radianes a grados decimales
+        $result->latitud = round($result->latitud / 0.0174533, 7);
+        $result->longitud = round($result->longitud / 0.0174533, 7);
+
+        // Convertir la fecha al formato deseado
+        $result->fecha = \Carbon\Carbon::createFromFormat('Y-m-d H:i:s', $result->fecha)->format('d/m/Y H:i:s');
+
+        $coordinates[] = ['lat' => $result->latitud, 'lng' => $result->longitud];
+        return $result;
+    });
+```
+
+### Response Structure
+
+The response groups GPS positions by resource:
+
+**CecocoController.php:256-284**
+```php
+// Agrupar los resultados por recurso
+$groupedResults = collect($results)->groupBy('recurso');
+// Estructura final de datos
+$finalData = [];
+// Iterar sobre los grupos y agregarlos a $finalData
+foreach ($groupedResults as $recurso => $group) {
+    $data = [];
+    
+    foreach ($group as $result) {
+        // Realizar la geocodificación inversa
+        $result->direccion = $this->getDireccion($result->latitud, $result->longitud);
+        $data[] = [
+            'id' => $result->id,
+            'recurso' => $result->recurso,
+            'latitud' => $result->latitud,
+            'longitud' => $result->longitud,
+            'velocidad' => (float) $result->velocidad,
+            'fecha' => $result->fecha,
+            'direccion' => (($result->latitud == 0) && ($result->longitud == 0)) ? 'Dirección no encontrada' : $result->direccion,
+        ];
+    }
+    
+    $finalData[] = [
+        'recurso' => $recurso,
+        'datos' => $data,
+    ];
+}
+return response()->json(['moviles' => $finalData]);
+```
+
+## Identifying Stopped Intervals
+
+Detect when and where mobile units were stopped for extended periods:
+
+```
+POST /get-moviles-parados
+```
+
+### Request Parameters
+
+**CecocoController.php:293-300**
+```php
+$request->validate([
+    'recursos' => 'required|string',
+    'fecha_desde' => 'required',
+    'fecha_hasta' => 'required',
+    'tiempo_permitido' => 'required|numeric',
+], [
+    'required' => 'El campo :attribute es necesario completar.',
+]);
+```
+
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| `recursos` | string | Yes | JSON string of resource IDs |
+| `fecha_desde` | datetime | Yes | Start date/time |
+| `fecha_hasta` | datetime | Yes | End date/time |
+| `tiempo_permitido` | numeric | Yes | Minimum stopped time in minutes to report |
+
+### Detection Algorithm
+
+**CecocoController.php:334-366**
+```php
+if ($prevPosition) {
+    $distance = $this->calcularDistancia($prevPosition->latitud, $prevPosition->longitud, $result->latitud, $result->longitud);
+
+    if ($distance < 0.02) {
+        if (!$inicioParada) {
+            $inicioParada = \Carbon\Carbon::parse($result->fecha);
+        }
+    } else {
+        if ($inicioParada) {
+            $finParada = \Carbon\Carbon::parse($result->fecha);
+            $tiempoParado = $finParada->diffInMinutes($inicioParada);
+
+            if ($tiempoParado > $tiempoPermitidoParar) {
+                $intervalosParado[] = [
+                    'recurso' => $recurso,
+                    'inicio_parado' => $inicioParada->format('H:i:s'),
+                    'fin_parado' => $finParada->format('H:i:s'),
+                    'latitud' => $prevPosition->latitud,
+                    'longitud' => $prevPosition->longitud,
+                    'lugar' => $this->getDireccion($prevPosition->latitud, $prevPosition->longitud),
+                    'tiempo_parado' => $tiempoParado,
+                ];
+            }
+
+            $inicioParada = null;
+        }
+    }
+}
+```
+
+The algorithm:
+1. Compares consecutive GPS positions
+2. Detects stops when distance < 0.02 km (20 meters)
+3. Records start and end times
+4. Reports only stops exceeding the specified threshold
+
+## Distance Calculation
+
+Uses the Haversine formula to calculate distance between coordinates:
+
+**CecocoController.php:375-394**
+```php
+private function calcularDistancia($lat1, $lon1, $lat2, $lon2)
+{
+    // Fórmula de Haversine para calcular la distancia entre dos puntos en la Tierra
+    $lat1Rad = deg2rad($lat1);
+    $lon1Rad = deg2rad($lon1);
+    $lat2Rad = deg2rad($lat2);
+    $lon2Rad = deg2rad($lon2);
+
+    $deltaLat = $lat2Rad - $lat1Rad;
+    $deltaLon = $lon2Rad - $lon1Rad;
+
+    $a = sin($deltaLat / 2) * sin($deltaLat / 2) + cos($lat1Rad) * cos($lat2Rad) * sin($deltaLon / 2) * sin($deltaLon / 2);
+    $c = 2 * atan2(sqrt($a), sqrt(1 - $a));
+
+    $earthRadius = 6371; // Radio de la Tierra en kilómetros
+
+    $distance = $earthRadius * $c;
+
+    return $distance;
+}
+```
+
+<Note>
+This formula returns distance in kilometers and accounts for the Earth's curvature.
+</Note>
+
+## Reverse Geocoding
+
+Convert GPS coordinates to human-readable addresses:
+
+**CecocoController.php:397-420**
+```php
+private function getDireccion($latitud, $longitud)
+{
+    $geocoding = GeocodificacionInversa::where('latitud', round($latitud, 7))
+        ->where('longitud', round($longitud, 7))
+        ->first();
+
+    if ($geocoding) {
+        // Dirección encontrada en la tabla GeocodificacionInversa
+        return $geocoding->direccion;
+    } else {
+        // Dirección no encontrada en la tabla, obtenerla a través de Google Maps
+        $direccion = $this->getAddressGoogle($latitud, $longitud);
+
+        if ($direccion != 'Dirección no encontrada') {
+            // Guardar la dirección en la tabla GeocodificacionInversa para futuras consultas
+            GeocodificacionInversa::create([
+                'latitud' => $latitud,
+                'longitud' => $longitud,
+                'direccion' => $direccion,
+            ]);
+        }
+        return $direccion;
+    }
+}
+```
+
+The system:
+1. First checks cached addresses in the database
+2. Falls back to Google Maps Geocoding API
+3. Caches new addresses for future lookups
+
+## Google Maps Integration
+
+**CecocoController.php:474-488**
+```php
+private function getAddressGoogle($lat, $lng)
+{
+    $apiKey = env('API_GOOGLE'); // Reemplaza con tu clave de API de Google Maps
+
+    // Realizar solicitud a la API de geocodificación
+    $url = "https://maps.googleapis.com/maps/api/geocode/json?latlng=$lat,$lng&key=$apiKey";
+    $response = file_get_contents($url);
+    $data = json_decode($response);
+
+    if (isset($data->results[0]->formatted_address)) {
+        return $data->results[0]->formatted_address;
+    } else {
+        return 'Dirección no encontrada';
+    }
+}
+```
+
+<Note>
+You need to configure the `API_GOOGLE` environment variable with your Google Maps API key.
+</Note>
+
+## Resource Status Monitoring
+
+Get current status of all resources:
+
+```
+GET /getRecursosCecoco
+```
+
+This endpoint provides real-time resource positions with:
+- Current GPS coordinates (converted to decimal degrees)
+- Resource type (patrol car, ambulance, etc.)
+- Last update timestamp
+- Movement status
+
+**CecocoController.php:91-109**
+```php
+$recursos = DB::connection('mysql_second')
+    ->table('ultimasposicionesgps')
+    ->select(
+        'ultimasposicionesgps.*',
+        'recursos.*',
+        'tiposrecurso.nombre as tipo_recurso',
+    )
+    ->join('recursos', 'recursos.id', '=', 'ultimasposicionesgps.recursos_id')
+    ->join('tiposrecurso', 'tiposrecurso.id', '=', 'recursos.idTipo')
+    ->whereBetween('ultimasposicionesgps.fecha', [$fecha_desde, $fecha_hasta])
+    ->where('ultimasposicionesgps.latitud', '!=', '0.0')
+    ->where('ultimasposicionesgps.longitud', '!=', '0.0')
+    ->get()
+    ->map(function ($result) {
+        // Convertir las coordenadas de radianes a grados decimales
+        $result->latitud_decimal = round($result->latitud / 0.0174533, 7);
+        $result->longitud_decimal = round($result->longitud / 0.0174533, 7);
+        return $result;
+    });
+```
+
+## Use Cases
+
+<CardGroup cols={2}>
+  <Card title="Route Optimization" icon="route">
+    Analyze patrol routes to optimize coverage and reduce response times
+  </Card>
+  
+  <Card title="Compliance Monitoring" icon="clipboard-check">
+    Verify that units are following assigned patrol areas and schedules
+  </Card>
+  
+  <Card title="Incident Investigation" icon="magnifying-glass">
+    Review unit locations during specific incidents for investigation purposes
+  </Card>
+  
+  <Card title="Performance Analysis" icon="chart-line">
+    Identify patterns in stopped intervals to improve operational efficiency
+  </Card>
+</CardGroup>
+
+## Best Practices
+
+### Time Windows
+
+Limit your tracking queries to reasonable time windows:
+- Real-time monitoring: Last 30-60 minutes
+- Daily review: 8-24 hours
+- Historical analysis: Up to 7 days
+
+### Stop Detection Threshold
+
+Set appropriate thresholds for stopped intervals:
+- Short stops (5-10 min): Normal operational stops
+- Medium stops (10-30 min): Investigation or extended activity
+- Long stops (30+ min): Potential issues requiring attention
+
+### Performance Optimization
+
+The system uses geocoding cache to reduce API calls:
+```php
+GeocodificacionInversa::where('latitud', round($latitud, 7))
+    ->where('longitud', round($longitud, 7))
+    ->first();
+```
+
+This significantly improves performance when tracking multiple units.
+
+## Related Features
+
+<Card title="Live Map" icon="map" href="/cecoco/live-map">
+  Visualize resource positions in real-time on the interactive map
+</Card>

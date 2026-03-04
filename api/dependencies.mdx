@@ -1,0 +1,506 @@
+---
+title: Dependencies API
+description: Manage organizational hierarchies, departments, divisions, and police units
+---
+
+## Overview
+
+The Dependencies API (Dependencias) manages the organizational hierarchy of police departments and units. It supports hierarchical structures from headquarters down to individual stations and sections, with parent-child relationships.
+
+## Endpoints
+
+### List Dependencies
+
+Retrieve all dependencies ordered by hierarchy and name.
+
+```http
+GET /dependencias
+```
+
+**Response**
+
+<ResponseField name="todasDependencias" type="array">
+  Array of dependency objects with parent-child relationships
+  
+  <Expandable title="Dependency Object">
+    <ResponseField name="id" type="integer">
+      Dependency ID
+    </ResponseField>
+    
+    <ResponseField name="nombre" type="string" required>
+      Dependency name
+    </ResponseField>
+    
+    <ResponseField name="tipo" type="string" required>
+      Dependency type: jefatura, subjefatura, direccion, departamental, division, comisaria, seccion, destacamento, area
+    </ResponseField>
+    
+    <ResponseField name="parent_id" type="integer">
+      Parent dependency ID (null for top-level headquarters)
+    </ResponseField>
+    
+    <ResponseField name="telefono" type="string">
+      Phone number(s)
+    </ResponseField>
+    
+    <ResponseField name="ubicacion" type="string">
+      Physical address or location
+    </ResponseField>
+    
+    <ResponseField name="observaciones" type="text">
+      Additional notes
+    </ResponseField>
+    
+    <ResponseField name="padre" type="object">
+      Parent dependency object
+    </ResponseField>
+    
+    <ResponseField name="hijos" type="array">
+      Array of child dependencies
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+<ResponseField name="estadisticas" type="object">
+  Count of dependencies by type
+  
+  ```json
+  {
+    "jefatura": 1,
+    "direccion": 15,
+    "departamental": 25,
+    "division": 42,
+    "comisaria": 180,
+    "seccion": 95,
+    "destacamento": 120
+  }
+  ```
+</ResponseField>
+
+**Example Request**
+
+```bash
+curl -X GET "https://your-domain.com/dependencias" \
+  -H "Cookie: your-session-cookie"
+```
+
+### Create Section or Station
+
+Create a new section (sección) or station (destacamento).
+
+```http
+POST /dependencias
+```
+
+**Request Body**
+
+<ParamField body="nombre" type="string" required>
+  Dependency name (will be prefixed with "Sección" or "Destacamento")
+</ParamField>
+
+<ParamField body="tipoDependencia" type="string" required>
+  Must be: seccion or destacamento
+</ParamField>
+
+<ParamField body="direccion" type="integer">
+  Direction ID (parent)
+</ParamField>
+
+<ParamField body="departamental" type="integer">
+  Departamental ID (parent)
+</ParamField>
+
+<ParamField body="division" type="integer">
+  Division ID (parent)
+</ParamField>
+
+<ParamField body="comisaria" type="integer">
+  Comisaría ID (parent)
+</ParamField>
+
+<ParamField body="telefono" type="string">
+  Contact phone number
+</ParamField>
+
+<ParamField body="ubicacion" type="string">
+  Physical location
+</ParamField>
+
+<ParamField body="observaciones" type="text">
+  Additional notes
+</ParamField>
+
+**Note**: You must provide at least one parent dependency (direccion, departamental, division, or comisaria).
+
+**Example Request**
+
+```bash
+curl -X POST "https://your-domain.com/dependencias" \
+  -H "Content-Type: application/x-www-form-urlencoded" \
+  -H "Cookie: your-session-cookie" \
+  -d "nombre=Técnica 911" \
+  -d "tipoDependencia=seccion" \
+  -d "division=15" \
+  -d "telefono=343-4123456" \
+  -d "ubicacion=Av. Almafuerte 123"
+```
+
+**Response**
+
+Redirects to `/dependencias` with success message: "Dependencia creada exitosamente."
+
+**Error Responses**
+
+<ResponseField name="error" type="string">
+  "Debe elegir al menos una dependencia padre" - No parent dependency selected
+</ResponseField>
+
+### Create General Dependency
+
+Create any type of dependency using the general form.
+
+```http
+POST /dependencias/store-general
+```
+
+**Request Body**
+
+<ParamField body="nombre" type="string" required>
+  Dependency name
+</ParamField>
+
+<ParamField body="tipo" type="string" required>
+  Dependency type: subjefatura, direccion, departamental, division, comisaria, seccion, destacamento, area
+</ParamField>
+
+<ParamField body="parent_id" type="integer">
+  Parent dependency ID (must be valid for the type)
+</ParamField>
+
+<ParamField body="telefono" type="string">
+  Phone number
+</ParamField>
+
+<ParamField body="ubicacion" type="string">
+  Location
+</ParamField>
+
+<ParamField body="observaciones" type="text">
+  Observations
+</ParamField>
+
+**Hierarchy Validation**
+
+The system enforces hierarchical rules:
+
+- **Subjefatura** can have parent: jefatura
+- **Dirección** can have parent: jefatura, subjefatura
+- **Departamental** can have parent: jefatura, direccion
+- **División** can have parent: jefatura, direccion, departamental
+- **Comisaría** can have parent: departamental
+- **Sección** can have parent: direccion, departamental, division, comisaria
+- **Destacamento** can have parent: departamental, division, comisaria
+- **Área** can have any dependency as parent
+
+**Example Request**
+
+```bash
+curl -X POST "https://your-domain.com/dependencias/store-general" \
+  -H "Content-Type: application/x-www-form-urlencoded" \
+  -H "Cookie: your-session-cookie" \
+  -d "nombre=911 y Video Vigilancia" \
+  -d "tipo=division" \
+  -d "parent_id=5" \
+  -d "telefono=343-4200000"
+```
+
+### Show Dependency
+
+View details of a specific dependency.
+
+```http
+GET /dependencias/{id}
+```
+
+<ParamField path="id" type="integer" required>
+  Dependency ID
+</ParamField>
+
+**Response**
+
+Returns view with dependency details, parent, and children.
+
+### Update Dependency
+
+Update an existing dependency.
+
+```http
+PUT /dependencias/{id}
+```
+
+<ParamField path="id" type="integer" required>
+  Dependency ID to update
+</ParamField>
+
+**Request Body**
+
+<ParamField body="nombre" type="string" required>
+  Dependency name
+</ParamField>
+
+<ParamField body="parent_id" type="integer">
+  Parent dependency ID (validated against hierarchy rules)
+</ParamField>
+
+<ParamField body="telefono" type="string">
+  Phone number
+</ParamField>
+
+<ParamField body="ubicacion" type="string">
+  Location
+</ParamField>
+
+<ParamField body="observaciones" type="text">
+  Observations
+</ParamField>
+
+**Validations**
+
+- Prevents circular references (a dependency cannot be its own ancestor)
+- Validates hierarchy rules when changing parent
+- Maintains data integrity
+
+**Example Request**
+
+```bash
+curl -X PUT "https://your-domain.com/dependencias/42" \
+  -H "Content-Type: application/x-www-form-urlencoded" \
+  -H "Cookie: your-session-cookie" \
+  -d "nombre=Sección Técnica 911" \
+  -d "telefono=343-4123456, 343-4123457" \
+  -d "observaciones=Updated contact information"
+```
+
+**Response**
+
+Redirects to `/dependencias` with success message: "Dependencia actualizada exitosamente."
+
+**Error Responses**
+
+<ResponseField name="error" type="string">
+  "La nueva jerarquía seleccionada no es válida" - Invalid hierarchy
+</ResponseField>
+
+<ResponseField name="error" type="string">
+  "No se puede establecer esta dependencia como padre porque crearía una referencia circular" - Circular reference detected
+</ResponseField>
+
+### Delete Dependency
+
+Delete a section or station (only these types can be deleted).
+
+```http
+DELETE /dependencias/{id}
+```
+
+<ParamField path="id" type="integer" required>
+  Dependency ID to delete
+</ParamField>
+
+**Restrictions**
+
+- Only `seccion` and `destacamento` types can be deleted
+- Cannot delete if it has child dependencies
+
+**Response**
+
+Redirects to `/dependencias` with success message: "Dependencia eliminada exitosamente."
+
+**Error Responses**
+
+<ResponseField name="error" type="string">
+  "Solo se pueden eliminar secciones y destacamentos." - Invalid type for deletion
+</ResponseField>
+
+<ResponseField name="error" type="string">
+  "No se puede eliminar la dependencia porque tiene dependencias asociadas." - Has child dependencies
+</ResponseField>
+
+## AJAX Endpoints
+
+### Get Departamentals
+
+Get departamental dependencies by parent direction.
+
+```http
+GET /get-departamentales?direccion_id={id}
+```
+
+<ParamField query="direccion_id" type="integer" required>
+  Direction ID
+</ParamField>
+
+**Response**
+
+```json
+[
+  {
+    "id": 12,
+    "nombre": "Departamental Paraná",
+    "tipo": "departamental",
+    "parent_id": 5
+  }
+]
+```
+
+### Get Divisions
+
+Get division dependencies by parent.
+
+```http
+GET /get-divisiones?departamental_id={id}
+GET /get-divisiones?direccion_id={id}
+```
+
+<ParamField query="departamental_id" type="integer">
+  Departamental ID
+</ParamField>
+
+<ParamField query="direccion_id" type="integer">
+  Direction ID (if departamental not provided)
+</ParamField>
+
+### Get Comisarías
+
+Get comisaría dependencies by departamental.
+
+```http
+GET /get-comisarias?departamental_id={id}
+```
+
+<ParamField query="departamental_id" type="integer" required>
+  Departamental ID
+</ParamField>
+
+### Get Dependencies by Type
+
+Get dependencies filtered by type and optionally by parent.
+
+```http
+GET /get-dependencias-por-tipo
+```
+
+<ParamField query="tipo" type="string" required>
+  Dependency type
+</ParamField>
+
+<ParamField query="parent_id" type="integer">
+  Optional parent ID filter
+</ParamField>
+
+### Get Possible Parents
+
+Get valid parent dependencies for a specific type.
+
+```http
+GET /get-posibles-padres?tipo={tipo}
+```
+
+<ParamField query="tipo" type="string" required>
+  Dependency type to get valid parents for
+</ParamField>
+
+**Response**
+
+Returns array of dependencies that can be parents for the specified type.
+
+## Dependency Types
+
+Hierarchy from top to bottom:
+
+1. **Jefatura** - Police Headquarters (top level)
+2. **Subjefatura** - Sub-headquarters
+3. **Dirección** - Directorate
+4. **Departamental** - Departmental unit
+5. **División** - Division
+6. **Comisaría** - Police station
+7. **Sección** - Section
+8. **Destacamento** - Detachment/outpost
+9. **Área** - Area (can be anywhere in hierarchy)
+
+## Model Methods
+
+### Get Badge Class
+
+```php
+$dependency->getBadgeClass() // Returns CSS class for UI badges
+$dependency->getBadgeColor() // Returns hex color code
+```
+
+### Check Deletion Permission
+
+```php
+$dependency->puedeSerEliminada() // Returns true if can be deleted
+```
+
+### Get Hierarchy Path
+
+```php
+$dependency->getRutaJerarquica() // Returns array of ancestors
+$dependency->dependeDe()         // Returns parent name or default
+```
+
+### Get Recursive Children
+
+```php
+Destino::obtenerTodosLosHijos($id) // Returns all descendant IDs
+```
+
+## Error Codes
+
+<ResponseField name="400" type="error">
+  Bad Request - Validation error or missing required fields
+</ResponseField>
+
+<ResponseField name="401" type="error">
+  Unauthorized - Authentication required
+</ResponseField>
+
+<ResponseField name="403" type="error">
+  Forbidden - Missing permissions (ver-dependencia, crear-dependencia, editar-dependencia, borrar-dependencia)
+</ResponseField>
+
+<ResponseField name="404" type="error">
+  Not Found - Dependency not found
+</ResponseField>
+
+<ResponseField name="422" type="error">
+  Unprocessable Entity - Invalid hierarchy or circular reference
+</ResponseField>
+
+## Models
+
+### Destino Model
+
+Represents an organizational dependency.
+
+**Relationships**
+
+- `padre` - BelongsTo Destino (parent dependency)
+- `hijos` - HasMany Destino (child dependencies)
+
+**Scopes**
+
+- `delTipo($tipo)` - Filter by type
+- `buscar($texto)` - Search by name, phone, or location
+
+**Static Methods**
+
+- `getEstadisticas()` - Get count by type
+- `obtenerTodosLosHijos($id)` - Get all descendants
+
+**Source Code Reference**
+
+Controller: `app/Http/Controllers/DependenciaController.php:1-576`
+
+Model: `app/Models/Destino.php:1-205`

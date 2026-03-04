@@ -1,0 +1,383 @@
+---
+title: 'Task Management'
+description: 'Create, schedule, and track recurring and one-time tasks'
+---
+
+## Overview
+
+C.A.R. 911 includes a comprehensive task management system that supports both one-time and recurring tasks. You can create tasks with daily, weekly, or monthly recurrence patterns, track their completion status, and assign them to users.
+
+## Task Permissions
+
+The task system uses granular permission controls:
+
+```php
+// Controller: app/Http/Controllers/TareaController.php:15-21
+public function __construct()
+{
+    $this->middleware('permission:ver-tarea|crear-tarea|editar-tarea|borrar-tarea')
+        ->only(['index']);
+    $this->middleware('permission:crear-tarea', ['only' => ['create', 'store']]);
+    $this->middleware('permission:editar-tarea', ['only' => ['edit', 'update', 'updateItem']]);
+    $this->middleware('permission:borrar-tarea', ['only' => ['destroy']]);
+}
+```
+
+## Creating Tasks
+
+<Steps>
+  <Step title="Define Task Details">
+    Create a new task with name and description:
+
+    ```php
+    // Controller: app/Http/Controllers/TareaController.php:126-138
+    $validated = $request->validate([
+        'nombre' => 'required|string|max:200',
+        'descripcion' => 'nullable|string',
+        'recurrencia_tipo' => 'required|in:none,daily,weekly,monthly',
+        'recurrencia_intervalo' => 'nullable|integer|min:1',
+        'recurrencia_dia_semana' => 'nullable|integer|min:1|max:7',
+        'recurrencia_dia_mes' => 'nullable|integer|min:1|max:31',
+        'fecha_inicio' => 'nullable|date',
+        'fecha_fin' => 'nullable|date|after_or_equal:fecha_inicio',
+        'activa' => 'nullable|boolean',
+    ]);
+    ```
+  </Step>
+
+  <Step title="Set Recurrence Pattern">
+    Choose from four recurrence types:
+
+    ```php
+    // Model: app/Models/Tarea.php:34-39
+    public const RECURRENCIAS = [
+        'none' => 'No repetitiva',
+        'daily' => 'Diaria',
+        'weekly' => 'Semanal',
+        'monthly' => 'Mensual',
+    ];
+    ```
+
+    <Accordion title="Recurrence Options">
+      - **None**: One-time task
+      - **Daily**: Repeats every N days (set interval)
+      - **Weekly**: Repeats on a specific day of the week
+      - **Monthly**: Repeats on a specific day of the month
+    </Accordion>
+  </Step>
+
+  <Step title="Generate Task Items">
+    The system automatically generates task items for the next 60 days:
+
+    ```php
+    // Controller: app/Http/Controllers/TareaController.php:144-155
+    DB::beginTransaction();
+    try {
+        $tarea = Tarea::create($validated);
+        
+        $desde = Carbon::now();
+        $hasta = Carbon::now()->addDays(60);
+        $tarea->generarItems($desde, $hasta);
+        
+        DB::commit();
+        
+        return redirect()->route('tareas.index')
+            ->with('success', 'Tarea creada exitosamente');
+    }
+    ```
+  </Step>
+</Steps>
+
+## Task Items
+
+Each task generates individual task items that represent specific scheduled occurrences.
+
+### Task Item States
+
+```php
+// Model: app/Models/TareaItem.php:14-22
+public const ESTADO_PENDIENTE = 'pendiente';
+public const ESTADO_EN_PROCESO = 'en_proceso';
+public const ESTADO_REALIZADA = 'realizada';
+
+public const ESTADOS = [
+    self::ESTADO_PENDIENTE => 'Pendiente',
+    self::ESTADO_EN_PROCESO => 'En proceso',
+    self::ESTADO_REALIZADA => 'Realizada',
+];
+```
+
+### Task Item Fields
+
+```php
+// Model: app/Models/TareaItem.php:24-36
+protected $fillable = [
+    'tarea_id',
+    'fecha_programada',
+    'estado',
+    'realizado_por',
+    'fecha_realizada',
+    'observaciones',
+];
+
+protected $casts = [
+    'fecha_programada' => 'date',
+    'fecha_realizada' => 'datetime',
+];
+```
+
+## Viewing Tasks
+
+The task index provides two views: upcoming tasks and all tasks.
+
+### Upcoming Tasks View
+
+<Tip>
+The "proximas" view shows only the next pending or in-progress task for each recurring task.
+</Tip>
+
+```php
+// Controller: app/Http/Controllers/TareaController.php:63-93
+if ($vista === 'proximas') {
+    $estadosProximos = [TareaItem::ESTADO_PENDIENTE, TareaItem::ESTADO_EN_PROCESO];
+    
+    $sub = TareaItem::selectRaw('MIN(fecha_programada) as fecha_programada, tarea_id')
+        ->whereIn('estado', $estadosProximos)
+        ->groupBy('tarea_id');
+    
+    $query->select('tarea_items.*')
+        ->joinSub($sub, 'next_items', function ($join) {
+            $join->on('tarea_items.tarea_id', '=', 'next_items.tarea_id')
+                 ->on('tarea_items.fecha_programada', '=', 'next_items.fecha_programada');
+        })
+        ->orderBy('tarea_items.fecha_programada', 'asc');
+}
+```
+
+### All Tasks View
+
+View all task items including completed ones with additional filters:
+
+```php
+// Controller: app/Http/Controllers/TareaController.php:95-107
+if ($vista !== 'proximas') {
+    if ($request->filled('fecha_realizada_desde')) {
+        $query->whereDate('fecha_realizada', '>=', $request->fecha_realizada_desde);
+    }
+    
+    if ($request->filled('fecha_realizada_hasta')) {
+        $query->whereDate('fecha_realizada', '<=', $request->fecha_realizada_hasta);
+    }
+    
+    $query->orderBy('fecha_programada', 'desc')
+          ->orderBy('created_at', 'desc');
+}
+```
+
+## Filtering Tasks
+
+You can filter tasks by multiple criteria:
+
+<Accordion title="Available Filters">
+  ```php
+  // Controller: app/Http/Controllers/TareaController.php:35-61
+  if ($request->filled('nombre')) {
+      $query->whereHas('tarea', function ($q) use ($nombre) {
+          $q->where('nombre', 'like', '%' . $nombre . '%');
+      });
+  }
+  
+  if ($request->filled('estado')) {
+      $query->where('estado', $request->estado);
+  }
+  
+  if ($request->filled('realizado_por')) {
+      $query->where('realizado_por', $request->realizado_por);
+  }
+  
+  if ($request->filled('observaciones')) {
+      $query->where('observaciones', 'like', '%' . $obs . '%');
+  }
+  
+  if ($request->filled('fecha_programada_desde')) {
+      $query->whereDate('fecha_programada', '>=', $request->fecha_programada_desde);
+  }
+  
+  if ($request->filled('fecha_programada_hasta')) {
+      $query->whereDate('fecha_programada', '<=', $request->fecha_programada_hasta);
+  }
+  ```
+</Accordion>
+
+## Updating Task Status
+
+You update individual task items to track progress:
+
+<Steps>
+  <Step title="Update Status">
+    Change the task item state:
+
+    ```php
+    // Controller: app/Http/Controllers/TareaController.php:245-268
+    public function updateItem(Request $request, $id)
+    {
+        $item = TareaItem::with('tarea')->findOrFail($id);
+        
+        $validated = $request->validate([
+            'estado' => 'required|in:pendiente,en_proceso,realizada',
+            'observaciones' => 'nullable|string',
+        ]);
+        
+        $item->observaciones = $validated['observaciones'] ?? null;
+        
+        if ($validated['estado'] === TareaItem::ESTADO_REALIZADA) {
+            $item->estado = TareaItem::ESTADO_REALIZADA;
+            $item->realizado_por = auth()->id();
+            $item->fecha_realizada = now();
+        } else {
+            $item->estado = $validated['estado'];
+            $item->realizado_por = null;
+            $item->fecha_realizada = null;
+        }
+        
+        $item->save();
+    }
+    ```
+  </Step>
+
+  <Step title="Track Completion">
+    When marking a task as completed, the system automatically records:
+    - Who completed it (`realizado_por`)
+    - When it was completed (`fecha_realizada`)
+  </Step>
+</Steps>
+
+## Editing Recurring Tasks
+
+When you edit a recurring task, you can choose the impact scope:
+
+<Note>
+You can either update only the task definition or regenerate future instances.
+</Note>
+
+```php
+// Controller: app/Http/Controllers/TareaController.php:194-211
+$impacto = $request->input('impacto_recurrencia', 'solo_tarea');
+$fechaCorte = $request->filled('fecha_corte') 
+    ? Carbon::parse($request->fecha_corte) 
+    : Carbon::now();
+
+DB::beginTransaction();
+try {
+    $tarea->update($validated);
+    
+    if ($impacto === 'futuras_instancias') {
+        // Delete future pending items
+        $tarea->items()
+            ->whereDate('fecha_programada', '>=', $fechaCorte->toDateString())
+            ->where('estado', TareaItem::ESTADO_PENDIENTE)
+            ->delete();
+        
+        // Regenerate items with new settings
+        $hasta = Carbon::now()->addDays(60);
+        $tarea->generarItems($fechaCorte, $hasta);
+    }
+    
+    DB::commit();
+}
+```
+
+## Recurring Task Generation
+
+The system generates task items based on recurrence rules:
+
+<Accordion title="Daily Recurrence">
+  ```php
+  // Model: app/Models/Tarea.php:93-106
+  if ($this->recurrencia_tipo === 'daily') {
+      $fecha = $inicio->copy();
+      while ($fecha->lte($hasta)) {
+          $this->items()->firstOrCreate([
+              'fecha_programada' => $fecha->toDateString(),
+          ], [
+              'estado' => TareaItem::ESTADO_PENDIENTE,
+          ]);
+          $creados++;
+          $fecha->addDays($intervalo);
+      }
+      return $creados;
+  }
+  ```
+</Accordion>
+
+<Accordion title="Weekly Recurrence">
+  ```php
+  // Model: app/Models/Tarea.php:108-127
+  if ($this->recurrencia_tipo === 'weekly') {
+      $diaSemana = (int) ($this->recurrencia_dia_semana ?: $inicio->dayOfWeekIso);
+      $fecha = $inicio->copy();
+      $carbonDow = $diaSemana === 7 ? Carbon::SUNDAY : $diaSemana;
+      
+      if ($fecha->dayOfWeekIso !== $diaSemana) {
+          $fecha = $fecha->next($carbonDow);
+      }
+      
+      while ($fecha->lte($hasta)) {
+          $this->items()->firstOrCreate([
+              'fecha_programada' => $fecha->toDateString(),
+          ], [
+              'estado' => TareaItem::ESTADO_PENDIENTE,
+          ]);
+          $creados++;
+          $fecha->addWeeks($intervalo);
+      }
+      return $creados;
+  }
+  ```
+</Accordion>
+
+<Accordion title="Monthly Recurrence">
+  ```php
+  // Model: app/Models/Tarea.php:129-156
+  if ($this->recurrencia_tipo === 'monthly') {
+      $diaMes = (int) ($this->recurrencia_dia_mes ?: $inicio->day);
+      $fecha = $inicio->copy();
+      $diaMesAjustado = min($diaMes, $fecha->daysInMonth);
+      $fecha->day($diaMesAjustado);
+      
+      if ($fecha->lt($inicio)) {
+          $fecha->addMonthNoOverflow($intervalo);
+          $diaMesAjustado = min($diaMes, $fecha->daysInMonth);
+          $fecha->day($diaMesAjustado);
+      }
+      
+      while ($fecha->lte($hasta)) {
+          $this->items()->firstOrCreate([
+              'fecha_programada' => $fecha->toDateString(),
+          ], [
+              'estado' => TareaItem::ESTADO_PENDIENTE,
+          ]);
+          $creados++;
+          
+          $fecha->addMonthNoOverflow($intervalo);
+          $diaMesAjustado = min($diaMes, $fecha->daysInMonth);
+          $fecha->day($diaMesAjustado);
+      }
+      return $creados;
+  }
+  ```
+</Accordion>
+
+## Task Routes
+
+```php
+// Routes: routes/web.php:59-60
+Route::resource('tareas', TareaController::class);
+Route::patch('tareas-items/{id}', 
+    [TareaController::class, 'updateItem'])
+    ->name('tareas.items.update');
+```
+
+<Tip>
+The task system automatically generates items 60 days in advance, ensuring you always have upcoming tasks scheduled.
+</Tip>

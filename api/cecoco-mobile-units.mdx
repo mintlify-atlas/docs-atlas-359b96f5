@@ -1,0 +1,515 @@
+---
+title: 'CECOCO Mobile Units API'
+description: 'Track mobile unit movements, routes, and stopped intervals for operational monitoring'
+---
+
+## Overview
+
+The CECOCO Mobile Units API provides detailed tracking and analysis capabilities for mobile resources. You can retrieve complete route histories, identify stopped intervals, and monitor unit behavior patterns for operational oversight and compliance.
+
+## Get Mobile Unit Routes
+
+Retrieves the complete GPS tracking history for one or more mobile units within a specified time range. This endpoint returns detailed route information including coordinates, speeds, timestamps, and reverse-geocoded addresses.
+
+<CodeGroup>
+```bash cURL
+curl -X POST "https://your-domain.com/get-moviles" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "recursos": ["MOVIL-101", "MOVIL-102"],
+    "fecha_desde": "2023-11-01 08:00:00",
+    "fecha_hasta": "2023-11-01 18:00:00"
+  }'
+```
+
+```javascript JavaScript
+fetch('https://your-domain.com/get-moviles', {
+  method: 'POST',
+  headers: {
+    'Content-Type': 'application/json'
+  },
+  body: JSON.stringify({
+    recursos: ['MOVIL-101', 'MOVIL-102'],
+    fecha_desde: '2023-11-01 08:00:00',
+    fecha_hasta: '2023-11-01 18:00:00'
+  })
+})
+.then(response => response.json())
+.then(data => console.log(data));
+```
+
+```php PHP
+$response = Http::post('https://your-domain.com/get-moviles', [
+    'recursos' => json_encode(['MOVIL-101', 'MOVIL-102']),
+    'fecha_desde' => '2023-11-01 08:00:00',
+    'fecha_hasta' => '2023-11-01 18:00:00'
+]);
+$data = $response->json();
+```
+</CodeGroup>
+
+### Request Parameters
+
+<ParamField body="recursos" type="array" required>
+  Array of resource identifiers to track. Must not be "Seleccionar recurso".
+  
+  Example: `["MOVIL-101", "MOVIL-102", "PATRULLA-05"]`
+</ParamField>
+
+<ParamField body="fecha_desde" type="datetime" required>
+  Start datetime for route tracking in format `Y-m-d H:i:s`
+  
+  Example: `"2023-11-01 08:00:00"`
+</ParamField>
+
+<ParamField body="fecha_hasta" type="datetime" required>
+  End datetime for route tracking in format `Y-m-d H:i:s`
+  
+  Example: `"2023-11-01 18:00:00"`
+</ParamField>
+
+### Response Structure
+
+<ResponseField name="moviles" type="array">
+  Array of mobile unit tracking data, grouped by resource
+  
+  <ResponseField name="recurso" type="string">
+    Resource identifier (e.g., "MOVIL-101")
+  </ResponseField>
+  
+  <ResponseField name="datos" type="array">
+    Array of GPS tracking points for this resource
+    
+    <ResponseField name="id" type="integer">
+      Unique GPS position record ID
+    </ResponseField>
+    
+    <ResponseField name="recurso" type="string">
+      Resource identifier
+    </ResponseField>
+    
+    <ResponseField name="latitud" type="float">
+      Latitude in decimal degrees
+    </ResponseField>
+    
+    <ResponseField name="longitud" type="float">
+      Longitude in decimal degrees
+    </ResponseField>
+    
+    <ResponseField name="velocidad" type="float">
+      Speed at this position (km/h or m/s depending on system configuration)
+    </ResponseField>
+    
+    <ResponseField name="fecha" type="string">
+      Timestamp in format `d/m/Y H:i:s`
+    </ResponseField>
+    
+    <ResponseField name="direccion" type="string">
+      Reverse-geocoded street address for this position
+    </ResponseField>
+  </ResponseField>
+</ResponseField>
+
+### Response Example
+
+```json
+{
+  "moviles": [
+    {
+      "recurso": "MOVIL-101",
+      "datos": [
+        {
+          "id": 45678,
+          "recurso": "MOVIL-101",
+          "latitud": -31.7298,
+          "longitud": -60.5355,
+          "velocidad": 45.5,
+          "fecha": "01/11/2023 08:15:30",
+          "direccion": "San Martín 1250, Paraná, Entre Ríos"
+        },
+        {
+          "id": 45679,
+          "recurso": "MOVIL-101",
+          "latitud": -31.7312,
+          "longitud": -60.5368,
+          "velocidad": 52.3,
+          "fecha": "01/11/2023 08:16:00",
+          "direccion": "Av. Ramírez 850, Paraná, Entre Ríos"
+        },
+        {
+          "id": 45680,
+          "recurso": "MOVIL-101",
+          "latitud": -31.7325,
+          "longitud": -60.5382,
+          "velocidad": 0.0,
+          "fecha": "01/11/2023 08:25:15",
+          "direccion": "Urquiza 945, Paraná, Entre Ríos"
+        }
+      ]
+    },
+    {
+      "recurso": "MOVIL-102",
+      "datos": [
+        {
+          "id": 45681,
+          "recurso": "MOVIL-102",
+          "latitud": -31.7441,
+          "longitud": -60.5212,
+          "velocidad": 38.2,
+          "fecha": "01/11/2023 08:14:45",
+          "direccion": "Av. Rivadavia 1520, Paraná, Entre Ríos"
+        }
+      ]
+    }
+  ]
+}
+```
+
+<Note>
+  **Reverse Geocoding**: The API automatically converts GPS coordinates to human-readable addresses using cached geocoding data. When coordinates are `0.0, 0.0`, the address returns as "Dirección no encontrada".
+</Note>
+
+## Get Stopped Mobile Units
+
+Analyzes mobile unit movement patterns to identify intervals where units were stationary for longer than a specified threshold. This is useful for compliance monitoring, idle time analysis, and operational efficiency reviews.
+
+<CodeGroup>
+```bash cURL
+curl -X POST "https://your-domain.com/get-moviles-parados" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "recursos": ["MOVIL-101", "MOVIL-102"],
+    "fecha_desde": "2023-11-01 08:00:00",
+    "fecha_hasta": "2023-11-01 18:00:00",
+    "tiempo_permitido": 15
+  }'
+```
+
+```javascript JavaScript
+fetch('https://your-domain.com/get-moviles-parados', {
+  method: 'POST',
+  headers: {
+    'Content-Type': 'application/json'
+  },
+  body: JSON.stringify({
+    recursos: ['MOVIL-101', 'MOVIL-102'],
+    fecha_desde: '2023-11-01 08:00:00',
+    fecha_hasta: '2023-11-01 18:00:00',
+    tiempo_permitido: 15
+  })
+})
+.then(response => response.json())
+.then(data => console.log(data));
+```
+
+```php PHP
+$response = Http::post('https://your-domain.com/get-moviles-parados', [
+    'recursos' => json_encode(['MOVIL-101', 'MOVIL-102']),
+    'fecha_desde' => '2023-11-01 08:00:00',
+    'fecha_hasta' => '2023-11-01 18:00:00',
+    'tiempo_permitido' => 15
+]);
+$data = $response->json();
+```
+</CodeGroup>
+
+### Request Parameters
+
+<ParamField body="recursos" type="string" required>
+  JSON-encoded array of resource identifiers to analyze
+  
+  Example: `"[\"MOVIL-101\", \"MOVIL-102\"]"`
+</ParamField>
+
+<ParamField body="fecha_desde" type="datetime" required>
+  Start datetime for analysis in format `Y-m-d H:i:s`
+</ParamField>
+
+<ParamField body="fecha_hasta" type="datetime" required>
+  End datetime for analysis in format `Y-m-d H:i:s`
+</ParamField>
+
+<ParamField body="tiempo_permitido" type="numeric" required>
+  Minimum stopped duration in minutes to report. Units stopped for less than this threshold are not included in results.
+  
+  Example: `15` (report only stops longer than 15 minutes)
+</ParamField>
+
+### Response Structure
+
+<ResponseField name="intervalos_parado" type="array">
+  Array of stopped interval records
+  
+  <ResponseField name="recurso" type="string">
+    Resource identifier
+  </ResponseField>
+  
+  <ResponseField name="inicio_parado" type="time">
+    Time when the unit stopped moving (format: `H:i:s`)
+  </ResponseField>
+  
+  <ResponseField name="fin_parado" type="time">
+    Time when the unit resumed movement (format: `H:i:s`)
+  </ResponseField>
+  
+  <ResponseField name="latitud" type="float">
+    Latitude where the unit was stopped
+  </ResponseField>
+  
+  <ResponseField name="longitud" type="float">
+    Longitude where the unit was stopped
+  </ResponseField>
+  
+  <ResponseField name="lugar" type="string">
+    Reverse-geocoded address of the stopped location
+  </ResponseField>
+  
+  <ResponseField name="tiempo_parado" type="integer">
+    Total stopped duration in minutes
+  </ResponseField>
+</ResponseField>
+
+### Response Example
+
+```json
+{
+  "intervalos_parado": [
+    {
+      "recurso": "MOVIL-101",
+      "inicio_parado": "09:15:30",
+      "fin_parado": "09:47:15",
+      "latitud": -31.7325,
+      "longitud": -60.5382,
+      "lugar": "Urquiza 945, Paraná, Entre Ríos",
+      "tiempo_parado": 32
+    },
+    {
+      "recurso": "MOVIL-101",
+      "inicio_parado": "12:05:00",
+      "fin_parado": "12:23:45",
+      "latitud": -31.7441,
+      "longitud": -60.5212,
+      "lugar": "Av. Rivadavia 1520, Paraná, Entre Ríos",
+      "tiempo_parado": 18
+    },
+    {
+      "recurso": "MOVIL-102",
+      "inicio_parado": "10:30:20",
+      "fin_parado": "11:10:55",
+      "latitud": -31.7298,
+      "longitud": -60.5355,
+      "lugar": "San Martín 1250, Paraná, Entre Ríos",
+      "tiempo_parado": 40
+    }
+  ]
+}
+```
+
+## List Mobile Units
+
+Retrieves a comprehensive list of all mobile units (cars and trucks) registered in the system, along with their associated vehicle information and current assignments.
+
+<CodeGroup>
+```bash cURL
+curl -X POST "https://your-domain.com/get-moviles-json" \
+  -H "Authorization: Bearer YOUR_TOKEN"
+```
+
+```javascript JavaScript
+fetch('https://your-domain.com/get-moviles-json', {
+  method: 'POST',
+  headers: {
+    'Authorization': 'Bearer YOUR_TOKEN'
+  }
+})
+.then(response => response.json())
+.then(data => console.log(data));
+```
+</CodeGroup>
+
+### Response Structure
+
+<ResponseField name="moviles" type="array">
+  Array of mobile unit records
+  
+  <ResponseField name="id" type="integer">
+    Resource ID
+  </ResponseField>
+  
+  <ResponseField name="nombre_recurso" type="string">
+    Resource name/identifier
+  </ResponseField>
+  
+  <ResponseField name="vehiculo_id" type="integer">
+    Associated vehicle ID
+  </ResponseField>
+  
+  <ResponseField name="tipo_vehiculo" type="string">
+    Vehicle type ("Auto" or "Camioneta")
+  </ResponseField>
+  
+  <ResponseField name="destino_id" type="integer">
+    Current assignment destination ID
+  </ResponseField>
+  
+  <ResponseField name="nombre" type="string">
+    Destination name
+  </ResponseField>
+</ResponseField>
+
+### Response Example
+
+```json
+[
+  {
+    "id": 42,
+    "nombre_recurso": "MOVIL-101",
+    "vehiculo_id": 15,
+    "tipo_vehiculo": "Auto",
+    "destino_id": 8,
+    "nombre": "Comisaría 1ra"
+  },
+  {
+    "id": 43,
+    "nombre_recurso": "MOVIL-102",
+    "vehiculo_id": 16,
+    "tipo_vehiculo": "Camioneta",
+    "destino_id": 8,
+    "nombre": "Comisaría 1ra"
+  }
+]
+```
+
+## Implementation Details
+
+### Movement Detection Algorithm
+
+The stopped intervals endpoint uses the Haversine formula to calculate distances between consecutive GPS points. A unit is considered "stopped" when consecutive positions are less than 0.02 km apart:
+
+```php
+private function calcularDistancia($lat1, $lon1, $lat2, $lon2)
+{
+    $lat1Rad = deg2rad($lat1);
+    $lon1Rad = deg2rad($lon1);
+    $lat2Rad = deg2rad($lat2);
+    $lon2Rad = deg2rad($lon2);
+    
+    $deltaLat = $lat2Rad - $lat1Rad;
+    $deltaLon = $lon2Rad - $lon1Rad;
+    
+    $a = sin($deltaLat / 2) * sin($deltaLat / 2) + 
+         cos($lat1Rad) * cos($lat2Rad) * 
+         sin($deltaLon / 2) * sin($deltaLon / 2);
+    $c = 2 * atan2(sqrt($a), sqrt(1 - $a));
+    
+    $earthRadius = 6371; // Earth radius in kilometers
+    
+    return $earthRadius * $c;
+}
+```
+
+When distance < 0.02 km, the system starts tracking a stopped interval. When movement resumes (distance >= 0.02 km), the interval is closed and recorded if it exceeds the `tiempo_permitido` threshold.
+
+### Geocoding Cache
+
+To optimize performance, the system maintains a geocoding cache in the `geocodificacion_inversa` table. When an address is requested:
+
+1. Check cache for exact coordinate match (rounded to 7 decimal places)
+2. If found, return cached address immediately
+3. If not found, query Google Maps Geocoding API
+4. Store result in cache for future requests
+
+This caching strategy significantly reduces external API calls and improves response times for frequently-tracked locations.
+
+### Coordinate Conversion
+
+All GPS coordinates are stored in radians in the `posicionesgps` table. The API converts them to decimal degrees using the conversion factor:
+
+```php
+$result->latitud = round($result->latitud / 0.0174533, 7);
+$result->longitud = round($result->longitud / 0.0174533, 7);
+```
+
+Decimal degrees are rounded to 7 decimal places (approximately 1.1 cm precision) for consistency with the geocoding cache.
+
+## Validation Rules
+
+The endpoints enforce the following validation:
+
+### Get Mobile Unit Routes
+- `recursos`: Required, must not equal "Seleccionar recurso"
+- `fecha_desde`: Required, valid datetime string
+- `fecha_hasta`: Required, valid datetime string
+
+### Get Stopped Intervals
+- `recursos`: Required, must be valid JSON string
+- `fecha_desde`: Required, valid datetime string
+- `fecha_hasta`: Required, valid datetime string
+- `tiempo_permitido`: Required, must be numeric
+
+## Error Handling
+
+All endpoints return standardized error responses:
+
+```json
+{
+  "status": "error",
+  "message": "Detailed error message"
+}
+```
+
+Validation errors return HTTP 422 with detailed field errors:
+
+```json
+{
+  "message": "The given data was invalid.",
+  "errors": {
+    "recursos": [
+      "El campo recursos es necesario completar."
+    ]
+  }
+}
+```
+
+## Use Cases
+
+### Route Replay and Analysis
+
+Use `/get-moviles` to reconstruct and visualize complete patrol routes for:
+- Incident investigation and timeline reconstruction
+- Response time analysis
+- Coverage area verification
+- Training and performance review
+
+### Compliance Monitoring
+
+Use `/get-moviles-parados` to identify:
+- Unauthorized extended stops
+- Pattern analysis for operational efficiency
+- Break compliance verification
+- Location-based behavior analysis
+
+### Resource Availability
+
+Use `/get-moviles-json` to:
+- Display available mobile units in dispatch interfaces
+- Filter resources by vehicle type for assignment
+- Track current deployment locations
+- Generate resource allocation reports
+
+## Performance Considerations
+
+<Note>
+  **Large Dataset Warning**: Route queries for multiple units over extended time periods can return large datasets. Consider implementing pagination or limiting the time range to maintain reasonable response times.
+</Note>
+
+Typical response times:
+- Single unit, 24-hour period: 2-5 seconds
+- 5 units, 24-hour period: 10-30 seconds
+- Single unit, 7-day period: 15-45 seconds
+
+Response time depends on:
+- Number of resources requested
+- Time range duration
+- GPS tracking frequency (higher frequency = more data points)
+- Geocoding cache hit rate

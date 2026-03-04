@@ -1,97 +1,229 @@
 ---
-title: "Introduction"
-description: "Welcome to the new home for your documentation"
+title: C.A.R. 911 Documentation
+description: Control and Administration of 911 Resources - Comprehensive police resource management system
+mode: custom
 ---
 
-## Setting up
+<div className="relative overflow-hidden bg-gradient-to-br from-[#1e3a8a] via-[#1e40af] to-[#1e3a8a] py-20 dark:from-[#0f1729] dark:via-[#1e3a8a] dark:to-[#0f1729]">
+  <div className="max-w-6xl mx-auto px-6 relative z-10">
+    <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-center">
+      <div className="lg:col-span-7">
+        <h1 className="text-4xl sm:text-5xl lg:text-6xl font-bold text-white mb-6">
+          C.A.R. 911 Documentation
+        </h1>
+        <p className="text-lg sm:text-xl text-blue-100 dark:text-blue-200 max-w-2xl mb-8">
+          Complete resource management for 911 operations. Track equipment, manage fleets, monitor cameras, and coordinate command center operations in real-time.
+        </p>
+        <div className="flex flex-wrap gap-4">
+          <a 
+            href="/installation" 
+            className="inline-flex items-center px-6 py-3 bg-white text-[#1e3a8a] font-semibold rounded-lg hover:bg-blue-50 transition-colors no-underline"
+          >
+            Get Started
+          </a>
+          <a 
+            href="/api/overview" 
+            className="inline-flex items-center px-6 py-3 border border-white/30 bg-white/10 text-white font-semibold rounded-lg hover:bg-white/20 transition-colors no-underline"
+          >
+            API Reference
+          </a>
+        </div>
+      </div>
+      <div className="lg:col-span-5 hidden lg:block">
+        <div className="relative">
+          <div className="absolute inset-0 bg-blue-400/20 blur-3xl rounded-full"></div>
+          <svg className="relative w-full h-auto" viewBox="0 0 400 400" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <circle cx="200" cy="200" r="180" stroke="rgba(255,255,255,0.1)" strokeWidth="2" fill="none"/>
+            <circle cx="200" cy="200" r="140" stroke="rgba(255,255,255,0.15)" strokeWidth="2" fill="none"/>
+            <circle cx="200" cy="200" r="100" stroke="rgba(255,255,255,0.2)" strokeWidth="2" fill="none"/>
+            <circle cx="200" cy="200" r="12" fill="white"/>
+            <path d="M200 60 L220 100" stroke="white" strokeWidth="3" strokeLinecap="round"/>
+            <path d="M280 120 L240 150" stroke="white" strokeWidth="3" strokeLinecap="round"/>
+            <path d="M340 200 L300 200" stroke="white" strokeWidth="3" strokeLinecap="round"/>
+            <path d="M280 280 L240 250" stroke="white" strokeWidth="3" strokeLinecap="round"/>
+            <path d="M200 340 L200 300" stroke="white" strokeWidth="3" strokeLinecap="round"/>
+            <path d="M120 280 L160 250" stroke="white" strokeWidth="3" strokeLinecap="round"/>
+            <path d="M60 200 L100 200" stroke="white" strokeWidth="3" strokeLinecap="round"/>
+            <path d="M120 120 L160 150" stroke="white" strokeWidth="3" strokeLinecap="round"/>
+          </svg>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
 
-Get your documentation site up and running in minutes.
+<div className="mt-16 mb-16 max-w-5xl mx-auto px-6">
+  <h2 className="text-2xl sm:text-3xl font-semibold text-gray-900 dark:text-white mb-4">Quick Start</h2>
+  <p className="text-base text-gray-600 dark:text-gray-400 mb-8">Get C.A.R. 911 up and running in your environment</p>
+  
+  <Steps>
+    <Step title="Install dependencies">
+      Clone the repository and install PHP dependencies with Composer.
+      
+      ```bash
+      git clone https://github.com/exechoko/dashboard_roles.git
+      cd dashboard_roles
+      composer install
+      ```
+    </Step>
+    
+    <Step title="Configure environment">
+      Copy the example environment file and generate your application key.
+      
+      ```bash
+      cp .env.example .env
+      php artisan key:generate
+      ```
+      
+      <Note>Update the `.env` file with your database credentials and other configuration settings.</Note>
+    </Step>
+    
+    <Step title="Run migrations">
+      Set up the database schema and seed initial data.
+      
+      ```bash
+      php artisan migrate --seed
+      ```
+      
+      This creates all necessary tables including users, roles, permissions, equipment, fleet, and camera management.
+    </Step>
+    
+    <Step title="Start the application">
+      Launch the development server and access the dashboard.
+      
+      ```bash
+      php artisan serve
+      ```
+      
+      Navigate to `http://localhost:8000` and log in with your credentials.
+    </Step>
+  </Steps>
+</div>
 
-<Card
-  title="Start here"
-  icon="rocket"
-  href="/quickstart"
-  horizontal
->
-  Follow our three step quickstart guide.
-</Card>
+<div className="mt-16 mb-16 max-w-5xl mx-auto px-6">
+  <h2 className="text-2xl sm:text-3xl font-semibold text-gray-900 dark:text-white mb-4">Explore by Feature</h2>
+  <p className="text-base text-gray-600 dark:text-gray-400 mb-8">Discover the core capabilities of C.A.R. 911</p>
+  
+  <CardGroup cols={3}>
+    <Card title="Dashboard" icon="gauge-high" href="/features/dashboard">
+      Real-time overview of operational status, equipment, and resources
+    </Card>
+    <Card title="Equipment Management" icon="laptop" href="/features/equipment-management">
+      Track terminals, devices, and equipment inventory with status monitoring
+    </Card>
+    <Card title="Fleet Management" icon="car" href="/features/fleet-management">
+      Manage police vehicles, mobile units, and fleet resources
+    </Card>
+    <Card title="Camera Systems" icon="camera" href="/features/camera-management">
+      Monitor and administer surveillance cameras and physical installations
+    </Card>
+    <Card title="Bodycam Tracking" icon="video" href="/features/bodycam-management">
+      Track bodycam assignments, deliveries, and returns
+    </Card>
+    <Card title="Dependencies" icon="sitemap" href="/features/dependencies">
+      Manage organizational hierarchy: departments, divisions, and stations
+    </Card>
+  </CardGroup>
+</div>
 
-## Make it yours
+<div className="mt-16 mb-16 max-w-5xl mx-auto px-6">
+  <h2 className="text-2xl sm:text-3xl font-semibold text-gray-900 dark:text-white mb-4">Key Features</h2>
+  <p className="text-base text-gray-600 dark:text-gray-400 mb-8">Everything you need for comprehensive resource management</p>
+  
+  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+    <div className="p-6 rounded-lg border border-gray-200 dark:border-[#27272a] bg-gray-50 dark:bg-[#1a1d27]">
+      <div className="flex items-start gap-4">
+        <div className="flex-shrink-0 w-10 h-10 rounded-lg bg-[#1e3a8a] dark:bg-[#3b82f6] flex items-center justify-center">
+          <svg className="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+          </svg>
+        </div>
+        <div>
+          <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-2">Role-Based Access Control</h3>
+          <p className="text-sm text-gray-600 dark:text-gray-400">Granular permissions with Spatie Laravel Permission package for secure multi-user access</p>
+        </div>
+      </div>
+    </div>
+    
+    <div className="p-6 rounded-lg border border-gray-200 dark:border-[#27272a] bg-gray-50 dark:bg-[#1a1d27]">
+      <div className="flex items-start gap-4">
+        <div className="flex-shrink-0 w-10 h-10 rounded-lg bg-[#1e3a8a] dark:bg-[#3b82f6] flex items-center justify-center">
+          <svg className="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 20l-5.447-2.724A1 1 0 013 16.382V5.618a1 1 0 011.447-.894L9 7m0 13l6-3m-6 3V7m6 10l4.553 2.276A1 1 0 0021 18.382V7.618a1 1 0 00-.553-.894L15 4m0 13V4m0 0L9 7" />
+          </svg>
+        </div>
+        <div>
+          <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-2">Live Command Center</h3>
+          <p className="text-sm text-gray-600 dark:text-gray-400">Real-time CECOCO mapping and mobile unit tracking with Leaflet integration</p>
+        </div>
+      </div>
+    </div>
+    
+    <div className="p-6 rounded-lg border border-gray-200 dark:border-[#27272a] bg-gray-50 dark:bg-[#1a1d27]">
+      <div className="flex items-start gap-4">
+        <div className="flex-shrink-0 w-10 h-10 rounded-lg bg-[#1e3a8a] dark:bg-[#3b82f6] flex items-center justify-center">
+          <svg className="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
+          </svg>
+        </div>
+        <div>
+          <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-2">Advanced Reporting</h3>
+          <p className="text-sm text-gray-600 dark:text-gray-400">Excel exports, audit logging, and comprehensive historical tracking</p>
+        </div>
+      </div>
+    </div>
+    
+    <div className="p-6 rounded-lg border border-gray-200 dark:border-[#27272a] bg-gray-50 dark:bg-[#1a1d27]">
+      <div className="flex items-start gap-4">
+        <div className="flex-shrink-0 w-10 h-10 rounded-lg bg-[#1e3a8a] dark:bg-[#3b82f6] flex items-center justify-center">
+          <svg className="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+          </svg>
+        </div>
+        <div>
+          <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-2">Advanced Search</h3>
+          <p className="text-sm text-gray-600 dark:text-gray-400">Powerful filtering and search capabilities across all resources and assets</p>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
 
-Design a docs site that looks great and empowers your users.
+<div className="mt-16 mb-16 max-w-5xl mx-auto px-6">
+  <h2 className="text-2xl sm:text-3xl font-semibold text-gray-900 dark:text-white mb-4">API Documentation</h2>
+  <p className="text-base text-gray-600 dark:text-gray-400 mb-8">Integrate C.A.R. 911 with your systems</p>
+  
+  <CardGroup cols={2}>
+    <Card title="Authentication" icon="lock" href="/api/authentication">
+      Learn how to authenticate and secure your API requests
+    </Card>
+    <Card title="Equipment API" icon="laptop" href="/api/equipment">
+      Manage equipment inventory programmatically
+    </Card>
+    <Card title="Fleet API" icon="car" href="/api/fleet">
+      Access vehicle and mobile unit data
+    </Card>
+    <Card title="CECOCO APIs" icon="radar" href="/api/cecoco-resources">
+      Real-time command center data and mobile tracking
+    </Card>
+  </CardGroup>
+</div>
 
-<Columns cols={2}>
-  <Card
-    title="Edit locally"
-    icon="pen-to-square"
-    href="/development"
-  >
-    Edit your docs locally and preview them in real time.
-  </Card>
-  <Card
-    title="Customize your site"
-    icon="palette"
-    href="/essentials/settings"
-  >
-    Customize the design and colors of your site to match your brand.
-  </Card>
-    <Card
-    title="Set up navigation"
-    icon="map"
-    href="/essentials/navigation"
-  >
-    Organize your docs to help users find what they need and succeed with your product.
-  </Card>
-  <Card
-    title="API documentation"
-    icon="terminal"
-    href="/api-reference/introduction"
-  >
-    Auto-generate API documentation from OpenAPI specifications.
-  </Card>
-</Columns>
-
-## Create beautiful pages
-
-Everything you need to create world-class documentation.
-
-<Columns cols={2}>
-  <Card
-    title="Write with MDX"
-    icon="pen-fancy"
-    href="/essentials/markdown"
-  >
-    Use MDX to style your docs pages.
-  </Card>
-  <Card
-    title="Code samples"
-    icon="code"
-    href="/essentials/code"
-  >
-    Add sample code to demonstrate how to use your product.
-  </Card>
-  <Card
-    title="Images"
-    icon="image"
-    href="/essentials/images"
-  >
-    Display images and other media.
-  </Card>
-  <Card
-    title="Reusable snippets"
-    icon="recycle"
-    href="/essentials/reusable-snippets"
-  >
-    Write once and reuse across your docs.
-  </Card>
-</Columns>
-
-## Need inspiration?
-
-<Card
-  title="See complete examples"
-  icon="stars"
-  href="https://mintlify.com/customers"
->
-  Browse our showcase of exceptional documentation sites.
-</Card>
+<div className="mt-20 mb-16 max-w-5xl mx-auto px-6">
+  <div className="rounded-2xl border border-gray-200 dark:border-[#27272a] bg-gradient-to-br from-gray-50 to-white dark:from-[#1a1d27] dark:to-[#0f1117] p-8 sm:p-12">
+    <div className="max-w-2xl mx-auto text-center">
+      <h2 className="text-2xl sm:text-3xl font-bold text-gray-900 dark:text-white mb-4">
+        Ready to get started?
+      </h2>
+      <p className="text-base text-gray-600 dark:text-gray-400 mb-8">
+        Follow our installation guide to deploy C.A.R. 911 in your environment
+      </p>
+      <a 
+        href="/installation" 
+        className="inline-flex items-center px-6 py-3 bg-[#1e3a8a] dark:bg-[#3b82f6] text-white font-semibold rounded-lg hover:bg-[#1e40af] dark:hover:bg-[#1e3a8a] transition-colors no-underline"
+      >
+        View Installation Guide
+      </a>
+    </div>
+  </div>
+</div>

@@ -1,0 +1,455 @@
+---
+title: Fleet API
+description: Manage fleet assignments, vehicle equipment, and movement tracking
+---
+
+## Overview
+
+The Fleet API manages the assignment of equipment to vehicles and resources. It tracks equipment installation, movement history, and patrimonial information. The fleet system supports complex workflows including installations, transfers, replacements, and returns.
+
+## Endpoints
+
+### List Fleet Records
+
+Retrieve paginated fleet records with search and filtering.
+
+```http
+GET /flota
+```
+
+<ParamField query="texto" type="string">
+  Search by ISSI, TEI, mobile name, or destination name
+</ParamField>
+
+<ParamField query="page" type="integer" default="1">
+  Page number (50 items per page)
+</ParamField>
+
+**Response**
+
+<ResponseField name="flota" type="array">
+  Array of fleet assignment objects
+  
+  <Expandable title="Fleet Object">
+    <ResponseField name="id" type="integer">
+      Fleet record ID
+    </ResponseField>
+    
+    <ResponseField name="equipo_id" type="integer">
+      Equipment ID
+    </ResponseField>
+    
+    <ResponseField name="recurso_id" type="integer">
+      Resource ID (vehicle/mobile)
+    </ResponseField>
+    
+    <ResponseField name="destino_id" type="integer">
+      Patrimonial destination ID
+    </ResponseField>
+    
+    <ResponseField name="fecha_asignacion" type="datetime">
+      Assignment date
+    </ResponseField>
+    
+    <ResponseField name="ticket_per" type="string">
+      PER ticket number
+    </ResponseField>
+    
+    <ResponseField name="observaciones" type="text">
+      Observations
+    </ResponseField>
+    
+    <ResponseField name="ultimo_movimiento" type="string">
+      Last movement type name
+    </ResponseField>
+    
+    <ResponseField name="fecha_ultimo_mov" type="datetime">
+      Last movement date
+    </ResponseField>
+    
+    <ResponseField name="equipo" type="object">
+      Related equipment object with TEI, ISSI, terminal info
+    </ResponseField>
+    
+    <ResponseField name="recurso" type="object">
+      Related resource object (vehicle/mobile)
+    </ResponseField>
+    
+    <ResponseField name="destino" type="object">
+      Related destination object
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+**Example Request**
+
+```bash
+curl -X GET "https://your-domain.com/flota?texto=1141" \
+  -H "Cookie: your-session-cookie"
+```
+
+### Advanced Search
+
+Perform advanced searches with multiple filters.
+
+```http
+GET /busqueda-avanzada
+```
+
+<ParamField query="texto" type="string">
+  General search text
+</ParamField>
+
+<ParamField query="equipo_id[]" type="array">
+  Array of equipment IDs to filter
+</ParamField>
+
+<ParamField query="recurso_id[]" type="array">
+  Array of resource IDs to filter
+</ParamField>
+
+<ParamField query="destino_id[]" type="array">
+  Array of patrimonial destination IDs
+</ParamField>
+
+<ParamField query="destino_actual_id[]" type="array">
+  Array of current destination IDs (includes children recursively)
+</ParamField>
+
+<ParamField query="estado_id[]" type="array">
+  Array of equipment state IDs
+</ParamField>
+
+<ParamField query="tipo_terminal_id[]" type="array">
+  Array of terminal type IDs
+</ParamField>
+
+<ParamField query="fecha_rango" type="string">
+  Date range in format "YYYY-MM-DD - YYYY-MM-DD"
+</ParamField>
+
+<ParamField query="ticket_per" type="string">
+  PER ticket number
+</ParamField>
+
+<ParamField query="observaciones" type="string">
+  Search in observations field
+</ParamField>
+
+**Response**
+
+Returns paginated results (500 items per page) with applied filters.
+
+**Example Request**
+
+```bash
+curl -X GET "https://your-domain.com/busqueda-avanzada?estado_id[]=1&estado_id[]=2&fecha_rango=2024-01-01 - 2024-12-31" \
+  -H "Cookie: your-session-cookie"
+```
+
+### Export Advanced Search Results
+
+Export filtered search results to Excel.
+
+```http
+GET /busqueda-avanzada/export-excel
+```
+
+Accepts the same query parameters as `/busqueda-avanzada`.
+
+**Response**
+
+Downloads Excel file: `BusquedaAvanzadaFlota_{timestamp}.xlsx`
+
+### Create Fleet Assignment
+
+Create a new fleet assignment with equipment installation.
+
+```http
+POST /flota
+```
+
+**Request Body**
+
+<ParamField body="tipo_movimiento" type="integer" required>
+  Movement type ID
+</ParamField>
+
+<ParamField body="dependencia" type="integer" required>
+  Destination ID
+</ParamField>
+
+<ParamField body="equipo" type="integer" required>
+  Equipment ID (must not already have a fleet assignment)
+</ParamField>
+
+<ParamField body="recurso" type="integer">
+  Resource/vehicle ID
+</ParamField>
+
+<ParamField body="fecha_asignacion" type="datetime" required>
+  Assignment date and time
+</ParamField>
+
+<ParamField body="ticket_per" type="string">
+  PER ticket reference number
+</ParamField>
+
+<ParamField body="observaciones" type="text">
+  Notes and observations
+</ParamField>
+
+<ParamField body="imagen1" type="file">
+  Image attachment (jpeg, png, jpg, gif, max 2MB)
+</ParamField>
+
+<ParamField body="imagen2" type="file">
+  Additional image (up to imagen10)
+</ParamField>
+
+<ParamField body="archivo" type="file">
+  Document attachment (pdf, doc, docx, xlsx, zip, rar, max 20MB)
+</ParamField>
+
+**Example Request**
+
+```bash
+curl -X POST "https://your-domain.com/flota" \
+  -H "Cookie: your-session-cookie" \
+  -F "tipo_movimiento=1" \
+  -F "dependencia=15" \
+  -F "equipo=234" \
+  -F "recurso=42" \
+  -F "fecha_asignacion=2024-01-15 10:30:00" \
+  -F "ticket_per=PER-2024-001" \
+  -F "imagen1=@installation.jpg"
+```
+
+**Response**
+
+Redirects to `/flota` on success.
+
+**Error Responses**
+
+<ResponseField name="error" type="string">
+  "El recurso 'Móvil 1141' ya tiene asociado el equipo TEI: ..." - Resource already has equipment assigned
+</ResponseField>
+
+### Show Fleet Record
+
+```http
+GET /flota/{id}
+```
+
+<ParamField path="id" type="integer" required>
+  Fleet record ID
+</ParamField>
+
+### Update Fleet Assignment
+
+Update fleet assignment and create new historical record.
+
+```http
+PUT /flota/{id}
+```
+
+<ParamField path="id" type="integer" required>
+  Fleet record ID
+</ParamField>
+
+**Request Body**
+
+Same parameters as create, plus:
+
+<ParamField body="equipoReemplazo" type="integer">
+  Replacement equipment ID (for replacement/recambio movements)
+</ParamField>
+
+<ParamField body="solo_modificar_historico" type="boolean">
+  Only modify historical record without updating fleet assignment
+</ParamField>
+
+<ParamField body="estado_final" type="integer">
+  Final equipment state ID
+</ParamField>
+
+**Movement Types**
+
+The system handles different movement types with specific logic:
+
+- **Movimiento patrimonial** - Patrimonial transfer
+- **Instalación completa** - Complete installation
+- **Desinstalación completa** - Complete uninstallation (moves to Stock)
+- **Provisorio** - Temporary assignment
+- **Revisión** - Equipment revision
+- **Devolución** - Return to stock
+- **Reemplazo** - Replacement (swaps two equipment)
+- **Recambio** - Exchange (swaps equipment, old goes to stock)
+- **Extraviado** - Lost equipment
+- **Recuperado** - Recovered equipment
+- **Devolver equipo temporal** - Return temporary equipment
+- **Devolución a dependencia** - Return to department
+- **Baja** - Decommission
+- **Reprogramación** - Reprogramming
+
+**Example Request**
+
+```bash
+curl -X PUT "https://your-domain.com/flota/123" \
+  -H "Cookie: your-session-cookie" \
+  -F "tipo_movimiento={\"id\":2}" \
+  -F "equipo=234" \
+  -F "fecha_asignacion=2024-02-01 14:00:00" \
+  -F "observaciones=Equipment moved to new vehicle"
+```
+
+### Delete Fleet Assignment
+
+```http
+DELETE /flota/{id}
+```
+
+<ParamField path="id" type="integer" required>
+  Fleet record ID
+</ParamField>
+
+## Additional Endpoints
+
+### View Assignment History
+
+View complete assignment history for equipment in a fleet record.
+
+```http
+GET /ver-historico/{id}
+```
+
+<ParamField path="id" type="integer" required>
+  Fleet record ID
+</ParamField>
+
+**Response**
+
+Returns historical records with images, assignments, and movements.
+
+### Print History
+
+Generate printable version of assignment history.
+
+```http
+GET /flota/historico/{id}/imprimir
+```
+
+<ParamField path="id" type="integer" required>
+  Fleet record ID
+</ParamField>
+
+### Update History Record
+
+Update observations and attachments for a historical record.
+
+```http
+POST /update-historico/{id}
+```
+
+<ParamField path="id" type="integer" required>
+  Historical record ID
+</ParamField>
+
+<ParamField body="observaciones" type="text" required>
+  Updated observations
+</ParamField>
+
+<ParamField body="nuevas_imagenes[]" type="file">
+  New image attachments
+</ParamField>
+
+<ParamField body="archivo" type="file">
+  Document attachment
+</ParamField>
+
+<ParamField body="imagenes_actuales" type="json">
+  JSON array of existing image paths to preserve
+</ParamField>
+
+### Generate Delivery Document
+
+Generate Word document for equipment delivery.
+
+```http
+GET /generate-docx/{id}
+```
+
+<ParamField path="id" type="integer" required>
+  Fleet record ID
+</ParamField>
+
+**Response**
+
+Downloads a Word document with delivery certificate.
+
+### Get Resources JSON
+
+Get available resources as JSON.
+
+```http
+GET /get-recursos
+```
+
+**Response**
+
+```json
+[
+  {
+    "id": 1,
+    "nombre": "Móvil 1141",
+    "vehiculo_id": 23,
+    "multi_equipos": false
+  }
+]
+```
+
+## Error Codes
+
+<ResponseField name="400" type="error">
+  Bad Request - Validation error or missing required fields
+</ResponseField>
+
+<ResponseField name="401" type="error">
+  Unauthorized - Authentication required
+</ResponseField>
+
+<ResponseField name="403" type="error">
+  Forbidden - Missing permissions (ver-flota, crear-flota, editar-flota, borrar-flota)
+</ResponseField>
+
+<ResponseField name="404" type="error">
+  Not Found - Fleet record not found
+</ResponseField>
+
+<ResponseField name="422" type="error">
+  Unprocessable Entity - Business logic error (e.g., resource already assigned)
+</ResponseField>
+
+## Models
+
+### FlotaGeneral Model
+
+Represents equipment-to-vehicle assignments.
+
+**Relationships**
+
+- `equipo` - BelongsTo Equipo
+- `recurso` - BelongsTo Recurso (vehicle/mobile)
+- `destino` - BelongsTo Destino (department)
+- `historico` - BelongsTo Historico
+
+**Methods**
+
+- `ultimoLugar()` - Returns last assignment location
+- `ultimoMovimiento()` - Returns last movement record
+
+**Source Code Reference**
+
+Controller: `app/Http/Controllers/FlotaGeneralController.php`
+
+Model: `app/Models/FlotaGeneral.php`

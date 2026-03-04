@@ -1,0 +1,373 @@
+---
+title: Fleet Management
+description: Assign equipment to resources, track movements, and maintain complete operational history
+---
+
+Fleet Management is the operational heart of C.A.R. 911, enabling you to assign equipment to vehicles and resources, track all movements, and generate delivery documentation. Every assignment, transfer, and status change is automatically recorded in the system's historical database.
+
+## Overview
+
+The Fleet Management system allows you to:
+
+- Assign equipment to mobile units (vehicles) or fixed resources
+- Track equipment movements between locations and resources
+- Record different types of movements (installation, transfer, replacement, etc.)
+- View complete equipment history with timestamps
+- Generate delivery documentation
+- Perform advanced searches with multiple filters
+- Export fleet data to Excel
+
+## Viewing Fleet Assignments
+
+The main fleet view displays all active assignments with:
+
+**Search Capabilities:**
+- Search by ISSI (equipment identifier)
+- Search by TEI (terminal equipment identity)
+- Search by resource name (mobile unit)
+- Search by department or location
+
+Each fleet record shows:
+- Equipment details (brand, model, TEI, ISSI)
+- Assigned resource (vehicle or mobile unit)
+- Current location (department/dependency)
+- Last movement type and date
+- Observations
+
+<Info>
+  The system displays 50 records per page and automatically updates to show the most recent movement for each equipment unit.
+</Info>
+
+## Creating Fleet Assignments
+
+Assign equipment to resources through a step-by-step workflow:
+
+<Steps>
+  <Step title="Select Equipment">
+    Choose from available equipment (equipment without current fleet assignments). The dropdown shows TEI and ISSI for identification.
+  </Step>
+  <Step title="Choose Movement Type">
+    Select the type of movement:
+    - **Complete Installation**: New installation on a resource
+    - **Patrimonial Movement**: Transfer ownership to different department
+    - **Temporary**: Short-term assignment
+    - **Review**: Equipment under evaluation
+    - And more (see Movement Types section)
+  </Step>
+  <Step title="Assign to Resource">
+    Select the destination resource (mobile unit, vehicle, or fixed location like "Stock 911")
+  </Step>
+  <Step title="Set Location">
+    Choose the department or dependency where the equipment will be located
+  </Step>
+  <Step title="Enter Assignment Date">
+    Record when the assignment takes effect
+  </Step>
+  <Step title="Add Documentation">
+    Optionally attach:
+    - Up to 10 images (JPEG, PNG, GIF, max 2MB each)
+    - Document files (PDF, DOC, DOCX, XLSX, ZIP, RAR, max 20MB)
+    - Ticket number (for tracking)
+    - Observations
+  </Step>
+</Steps>
+
+<Note>
+  The system validates that resources marked as single-equipment only can have one equipment assignment at a time. Resources with `multi_equipos` enabled can have multiple units assigned.
+</Note>
+
+## Movement Types
+
+The system supports various movement types, each with specific business logic:
+
+<Accordion title="Complete Installation">
+  **Complete Installation** - Fresh installation of equipment on a resource
+  
+  - Assigns equipment to selected resource and department
+  - Records resource and vehicle information
+  - Creates historical record with full details
+  - Validates resource availability (single-equipment resources only)
+</Accordion>
+
+<Accordion title="Patrimonial Movement">
+  **Patrimonial Movement** - Transfer of equipment between departments while maintaining active status
+  
+  - Changes both resource and location
+  - Updates patrimonial assignment
+  - Records previous and new assignments
+  - Maintains complete transfer history
+</Accordion>
+
+<Accordion title="Complete Uninstallation">
+  **Complete Uninstallation** - Remove equipment from active service
+  
+  - Automatically assigns equipment to "Stock 911"
+  - Records previous resource for tracking
+  - Closes current assignment with deassignment date
+  - Equipment returns to available inventory
+</Accordion>
+
+<Accordion title="Replacement">
+  **Replacement** - Swap one equipment unit for another
+  
+  - Removes original equipment and assigns replacement
+  - Original equipment goes to "Soporte 1er Nivel - PG"
+  - Replacement equipment takes over the assignment
+  - Creates historical records for both units
+  - Maintains continuity of service
+</Accordion>
+
+<Accordion title="Exchange">
+  **Exchange** - Similar to replacement but original equipment returns to stock
+  
+  - Swaps equipment units
+  - Original unit returns to "Stock 911"
+  - New equipment takes over assignment
+  - Both units have complete movement history
+</Accordion>
+
+<Accordion title="Temporary">
+  **Temporary** - Short-term assignment
+  
+  - Assigns equipment on provisional basis
+  - Records temporary resource assignment
+  - Can be converted to permanent later
+</Accordion>
+
+<Accordion title="Return Temporary Equipment">
+  **Return Temporary Equipment** - Return equipment from temporary assignment
+  
+  - Moves equipment to "Lote Temporal PG"
+  - Records deassignment from previous resource
+  - Equipment awaits next assignment
+</Accordion>
+
+<Accordion title="Return">
+  **Return** - Standard equipment return
+  
+  - Returns equipment to "Stock 911"
+  - Records previous assignment details
+  - Equipment becomes available for reassignment
+</Accordion>
+
+<Accordion title="Return to Dependency">
+  **Return to Dependency** - Return equipment to originating department
+  
+  - Assigns back to original location
+  - Updates resource assignment
+  - Maintains organizational structure
+</Accordion>
+
+<Accordion title="Review">
+  **Review** - Equipment under evaluation
+  
+  - Assigns to review resource
+  - Tracks review period
+  - Can return to service or stock after review
+</Accordion>
+
+<Accordion title="Lost">
+  **Lost** - Report equipment as missing
+  
+  - Moves to "Equipos extraviados" resource
+  - Records last known location
+  - Tracks missing equipment separately
+</Accordion>
+
+<Accordion title="Recovered">
+  **Recovered** - Equipment found after being lost
+  
+  - Assigns recovered equipment to resource
+  - Updates status from lost to active
+  - Records recovery details
+</Accordion>
+
+<Accordion title="Reprogramming">
+  **Reprogramming** - Equipment configuration update
+  
+  - Records reprogramming activity
+  - Maintains assignment during process
+  - Tracks configuration changes
+</Accordion>
+
+## Editing Fleet Assignments
+
+Update existing fleet assignments to record new movements:
+
+**When editing, you can:**
+- Record a new movement (creates new historical record)
+- Change equipment (useful for replacements)
+- Update resource assignment
+- Modify location/department
+- Add documentation (images and files)
+- Update observations
+
+**Special Features:**
+- **Replacement Equipment Selector**: For replacement movements, choose from equipment in "Stock 911"
+- **Final Status Selector**: Set equipment end status after certain movements
+- **Historical Modification Only**: Check this to only update historical record without changing fleet assignment
+
+<Warning>
+  Editing a fleet record creates a new historical entry and closes the previous one with a deassignment date. The complete history is preserved.
+</Warning>
+
+## Advanced Search
+
+Perform complex searches with multiple simultaneous filters:
+
+**Available Filters:**
+
+<CardGroup cols={2}>
+  <Card title="Text Search" icon="magnifying-glass">
+    Search across ISSI, TEI, resource name, and location name
+  </Card>
+  <Card title="Equipment Filter" icon="walkie-talkie">
+    Select specific equipment units (multi-select supported)
+  </Card>
+  <Card title="Resource Filter" icon="car">
+    Filter by assigned resources (multi-select supported)
+  </Card>
+  <Card title="Current Location" icon="location-dot">
+    Filter by current department (includes child dependencies)
+  </Card>
+  <Card title="Patrimonial Location" icon="building">
+    Filter by patrimonial assignment location
+  </Card>
+  <Card title="Terminal Type" icon="mobile">
+    Filter by equipment brand and model
+  </Card>
+  <Card title="Equipment Status" icon="signal">
+    Filter by equipment operational status
+  </Card>
+  <Card title="Date Range" icon="calendar-range">
+    Find assignments within specific dates
+  </Card>
+  <Card title="Ticket/Observations" icon="ticket">
+    Search by ticket number or observation text
+  </Card>
+</CardGroup>
+
+**Search Features:**
+- All filters can be combined
+- Multi-select filters support multiple values
+- Date range uses start and end dates
+- Results are paginated (500 per page)
+- Export search results to Excel
+- Hierarchical location search (includes child departments)
+
+<Info>
+  When searching by current location or patrimonial location, the system automatically includes all child dependencies in the hierarchy. For example, selecting a Division includes all Sections and Stations under it.
+</Info>
+
+## Equipment History
+
+View complete movement history for any equipment:
+
+**History includes:**
+- All movements chronologically (most recent first)
+- Movement types and dates
+- Previous and current assignments
+- Resources and vehicles
+- Locations and departments
+- Attached images and documents
+- Observations for each movement
+- Assignment and deassignment timestamps
+
+**Actions on history:**
+- View all attached images inline
+- Download attached documents
+- Update observations for past movements
+- Add new images or documents to historical records
+- Print complete history
+
+## Generating Delivery Documents
+
+Create official delivery documentation (Word format):
+
+<Steps>
+  <Step title="Select Fleet Assignment">
+    Choose the equipment assignment for which you need documentation
+  </Step>
+  <Step title="System Generates Document">
+    Automatically creates Word document with:
+    - Police headers and logos
+    - Current date and location
+    - Equipment details (brand, model, TEI, ISSI)
+    - Destination department
+    - Formatted delivery text
+  </Step>
+  <Step title="Download Document">
+    Document downloads automatically with timestamp in filename
+  </Step>
+</Steps>
+
+**Document formats available:**
+- Standard document
+- Template-based (uses stored template)
+- Tabular format (for multiple equipment)
+
+<Note>
+  Delivery documents are generated on-demand and not stored permanently. Generate them as needed for physical delivery paperwork.
+</Note>
+
+## Exporting Fleet Data
+
+**Export Options:**
+
+1. **Standard Export**: Export all fleet assignments with current filters applied
+2. **Advanced Search Export**: Export results from advanced search with all filters
+
+Exports include:
+- Equipment identification (TEI, ISSI, brand, model)
+- Resource and vehicle information
+- Location and department
+- Current status
+- Assignment dates
+- Observations
+
+Export filename format: `BusquedaAvanzadaFlota_YYYY-MM-DD_HH-MM-SS.xlsx`
+
+## Hierarchical Location Management
+
+The system respects organizational hierarchy when filtering and displaying equipment:
+
+**Hierarchy Levels:**
+1. Police Headquarters (Jefatura)
+2. Directions (Direcciones)
+3. Departmental Units (Departamentales)
+4. Divisions (Divisiones)
+5. Police Stations (Comisarías)
+6. Sections (Secciones)
+7. Detachments (Destacamentos)
+
+When you select a parent level, the system includes all equipment in child levels automatically.
+
+<Info>
+  This hierarchical search makes it easy to see all equipment for an entire Division without manually selecting each Section or Station under it.
+</Info>
+
+## Best Practices
+
+<CardGroup cols={1}>
+  <Card title="Always Record Movement Type" icon="arrows-turn-right">
+    Select the appropriate movement type for accurate tracking and reporting.
+  </Card>
+  <Card title="Attach Documentation" icon="paperclip">
+    Upload photos of installations and relevant paperwork for audit trails.
+  </Card>
+  <Card title="Use Observations Field" icon="comment">
+    Document special circumstances, reasons for movements, or technical notes.
+  </Card>
+  <Card title="Keep Assignment Dates Accurate" icon="calendar-check">
+    Use actual installation/removal dates for accurate historical tracking.
+  </Card>
+  <Card title="Verify Resource Selection" icon="circle-check">
+    Double-check resource and location before saving to avoid incorrect assignments.
+  </Card>
+  <Card title="Review History Before Changes" icon="clock-rotate-left">
+    Check equipment history to understand context before making changes.
+  </Card>
+  <Card title="Use Advanced Search" icon="filter">
+    Leverage multiple filters to find specific equipment or analyze fleet distribution.
+  </Card>
+</CardGroup>

@@ -1,0 +1,421 @@
+---
+title: 'Authentication'
+description: 'Learn how to authenticate with the C.A.R. 911 API using Laravel Sanctum for secure access'
+---
+
+## Overview
+
+C.A.R. 911 uses **Laravel Sanctum** for API authentication, providing a lightweight authentication system for SPAs (Single Page Applications) and mobile applications. Sanctum offers both session-based authentication for first-party applications and token-based authentication for third-party API access.
+
+<Note>
+Laravel Sanctum is installed via the `laravel/sanctum` package (version 2.11+) as specified in `composer.json`.
+</Note>
+
+## Authentication Methods
+
+### Session-Based Authentication (Web)
+
+For web-based applications, C.A.R. 911 uses traditional session-based authentication with cookies. This is the primary method for the main web interface.
+
+**Login Endpoint**: `/login` (POST)
+
+**Logout Endpoint**: `/logout` (POST)
+
+### Token-Based Authentication (API)
+
+For API access, Sanctum provides personal access tokens that can be included in request headers.
+
+## User Model Configuration
+
+The User model includes the `HasApiTokens` trait, enabling token-based authentication:
+
+```php app/Models/User.php
+use Laravel\Sanctum\HasApiTokens;
+use Spatie\Permission\Traits\HasRoles;
+
+class User extends Authenticatable
+{
+    use HasApiTokens, HasFactory, Notifiable, HasRoles;
+
+    protected $fillable = [
+        'name',
+        'apellido',
+        'lp',
+        'dni',
+        'email',
+        'password',
+        'photo',
+        'theme'
+    ];
+
+    protected $hidden = [
+        'password',
+        'remember_token',
+    ];
+}
+```
+
+## Authentication Endpoints
+
+### Login
+
+Authenticate a user and create a session:
+
+<CodeGroup>
+```bash cURL
+curl -X POST http://localhost/login \
+  -H "Content-Type: application/json" \
+  -H "Accept: application/json" \
+  -d '{
+    "email": "user@example.com",
+    "password": "your-password"
+  }'
+```
+
+```javascript JavaScript
+fetch('http://localhost/login', {
+  method: 'POST',
+  headers: {
+    'Content-Type': 'application/json',
+    'Accept': 'application/json'
+  },
+  body: JSON.stringify({
+    email: 'user@example.com',
+    password: 'your-password'
+  })
+})
+.then(response => response.json())
+.then(data => console.log(data));
+```
+
+```python Python
+import requests
+
+response = requests.post(
+    'http://localhost/login',
+    headers={
+        'Content-Type': 'application/json',
+        'Accept': 'application/json'
+    },
+    json={
+        'email': 'user@example.com',
+        'password': 'your-password'
+    }
+)
+
+print(response.json())
+```
+</CodeGroup>
+
+**Request Body**:
+
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| `email` | string | Yes | User's email address |
+| `password` | string | Yes | User's password (minimum 8 characters) |
+
+**Success Response (302 Redirect)**:
+
+```json
+{
+  "redirect": "/home"
+}
+```
+
+### Logout
+
+Terminate the current user session:
+
+<CodeGroup>
+```bash cURL
+curl -X POST http://localhost/logout \
+  -H "Content-Type: application/json" \
+  -H "Accept: application/json" \
+  -H "Cookie: laravel_session=YOUR_SESSION_COOKIE"
+```
+
+```javascript JavaScript
+fetch('http://localhost/logout', {
+  method: 'POST',
+  headers: {
+    'Content-Type': 'application/json',
+    'Accept': 'application/json'
+  },
+  credentials: 'include'
+})
+.then(response => response.json())
+.then(data => console.log(data));
+```
+</CodeGroup>
+
+### Get Authenticated User
+
+Retrieve information about the currently authenticated user:
+
+<CodeGroup>
+```bash cURL
+curl -X GET http://localhost/api/user \
+  -H "Accept: application/json" \
+  -H "Authorization: Bearer YOUR_API_TOKEN"
+```
+
+```javascript JavaScript
+fetch('http://localhost/api/user', {
+  method: 'GET',
+  headers: {
+    'Accept': 'application/json',
+    'Authorization': 'Bearer YOUR_API_TOKEN'
+  }
+})
+.then(response => response.json())
+.then(data => console.log(data));
+```
+</CodeGroup>
+
+**Response**:
+
+```json
+{
+  "id": 1,
+  "name": "John",
+  "apellido": "Doe",
+  "lp": "12345",
+  "dni": "12345678",
+  "email": "john.doe@example.com",
+  "photo": null,
+  "theme": "light",
+  "email_verified_at": null,
+  "created_at": "2024-01-15T10:30:00.000000Z",
+  "updated_at": "2024-01-15T10:30:00.000000Z"
+}
+```
+
+## Creating API Tokens
+
+To generate personal access tokens for API authentication, you can use Sanctum's token creation method:
+
+```php
+$user = User::find(1);
+$token = $user->createToken('api-token')->plainTextToken;
+```
+
+<Warning>
+Store API tokens securely. They provide full access to the user's account and cannot be retrieved after creation.
+</Warning>
+
+## Using API Tokens
+
+Include the token in the `Authorization` header of your requests:
+
+```http
+Authorization: Bearer YOUR_API_TOKEN
+```
+
+### Example Authenticated Request
+
+<CodeGroup>
+```bash cURL
+curl -X GET http://localhost/api/user \
+  -H "Accept: application/json" \
+  -H "Authorization: Bearer 1|abcdefghijklmnopqrstuvwxyz123456"
+```
+
+```javascript JavaScript
+const token = '1|abcdefghijklmnopqrstuvwxyz123456';
+
+fetch('http://localhost/api/user', {
+  headers: {
+    'Accept': 'application/json',
+    'Authorization': `Bearer ${token}`
+  }
+})
+.then(response => response.json())
+.then(data => console.log(data));
+```
+
+```python Python
+import requests
+
+token = '1|abcdefghijklmnopqrstuvwxyz123456'
+
+response = requests.get(
+    'http://localhost/api/user',
+    headers={
+        'Accept': 'application/json',
+        'Authorization': f'Bearer {token}'
+    }
+)
+
+print(response.json())
+```
+</CodeGroup>
+
+## Sanctum Configuration
+
+### Stateful Domains
+
+Sanctum allows requests from specific domains to receive stateful API authentication cookies:
+
+```php config/sanctum.php
+'stateful' => explode(',', env('SANCTUM_STATEFUL_DOMAINS', sprintf(
+    '%s%s',
+    'localhost,localhost:3000,127.0.0.1,127.0.0.1:8000,::1',
+    env('APP_URL') ? ','.parse_url(env('APP_URL'), PHP_URL_HOST) : ''
+))),
+```
+
+### Token Expiration
+
+By default, Sanctum tokens do not expire:
+
+```php config/sanctum.php
+'expiration' => null,
+```
+
+You can set a custom expiration time in minutes if needed:
+
+```php
+'expiration' => 525600, // 1 year
+```
+
+## Middleware Protection
+
+Protect your API routes using the `auth:sanctum` middleware:
+
+```php routes/api.php
+Route::middleware('auth:sanctum')->get('/user', function (Request $request) {
+    return $request->user();
+});
+```
+
+## Authorization with Spatie Permissions
+
+C.A.R. 911 uses **Spatie Laravel Permission** package for role-based access control. Users are assigned roles, and roles have specific permissions.
+
+### User Model with Roles
+
+```php
+use Spatie\Permission\Traits\HasRoles;
+
+class User extends Authenticatable
+{
+    use HasApiTokens, HasFactory, Notifiable, HasRoles;
+}
+```
+
+### Checking Permissions
+
+You can check if a user has specific permissions:
+
+```php
+// Check if user has permission
+$user->hasPermissionTo('edit-equipment');
+
+// Check if user has role
+$user->hasRole('admin');
+
+// Get user's role color
+$user->getRoleColor('admin');
+```
+
+### Route Protection with Permissions
+
+Many routes in C.A.R. 911 are protected with middleware checking for specific permissions:
+
+```php routes/web.php
+Route::get('entrega-equipos/{id}/documento', [EntregasEquiposController::class, 'generarDocumento'])
+    ->name('entrega-equipos.documento')
+    ->middleware('can:crear-entrega-equipos');
+```
+
+<Note>
+Refer to the Roles and Permissions documentation for detailed information about available permissions.
+</Note>
+
+## Error Responses
+
+### Unauthenticated
+
+When authentication is required but not provided:
+
+**Status Code**: `401 Unauthorized`
+
+```json
+{
+  "message": "Unauthenticated."
+}
+```
+
+### Invalid Credentials
+
+When login credentials are incorrect:
+
+**Status Code**: `422 Unprocessable Entity`
+
+```json
+{
+  "message": "The given data was invalid.",
+  "errors": {
+    "email": [
+      "These credentials do not match our records."
+    ]
+  }
+}
+```
+
+### Insufficient Permissions
+
+When the user lacks required permissions:
+
+**Status Code**: `403 Forbidden`
+
+```json
+{
+  "message": "This action is unauthorized."
+}
+```
+
+## Security Best Practices
+
+<Warning>
+Always use HTTPS in production to protect authentication tokens and credentials during transmission.
+</Warning>
+
+### Recommendations
+
+1. **Store tokens securely** - Never expose API tokens in client-side code or version control
+2. **Use HTTPS** - Always use secure connections in production
+3. **Rotate tokens regularly** - Implement token rotation policies for enhanced security
+4. **Validate input** - All authentication endpoints validate input as defined in `RegisterController`:
+   - Email must be valid and unique
+   - Password must be at least 8 characters
+   - Name is required
+5. **Session timeouts** - Configure appropriate session lifetimes in `.env`:
+   ```bash
+   SESSION_LIFETIME=120
+   ```
+6. **Password hashing** - Passwords are automatically hashed using Laravel's `Hash::make()` method
+
+## Guest Routes
+
+Certain routes are accessible only to unauthenticated users (guests):
+
+```php app/Http/Controllers/Auth/LoginController.php
+public function __construct()
+{
+    $this->middleware('guest')->except('logout');
+}
+```
+
+This prevents authenticated users from accessing login/registration pages.
+
+## Next Steps
+
+<CardGroup cols={2}>
+  <Card title="User Management" icon="users" href="/api/users">
+    Learn how to manage users, profiles, and themes
+  </Card>
+  <Card title="Roles & Permissions" icon="shield" href="/users/roles-permissions">
+    Understand role-based access control with Spatie
+  </Card>
+</CardGroup>

@@ -1,0 +1,362 @@
+---
+title: Camera Management
+description: Manage surveillance cameras across your network with complete site and type tracking
+---
+
+Camera Management allows you to maintain a comprehensive inventory of surveillance cameras deployed throughout your jurisdiction. Track cameras by type, location, technical specifications, and operational status.
+
+## Overview
+
+The Camera Management system provides:
+
+- Complete camera inventory with technical details
+- Camera type classification (Fixed, Dome, LPR, Dual, etc.)
+- Site-based organization
+- IP address and serial number tracking
+- Installation and orientation data
+- Real-time statistics by camera type
+- Excel import/export capabilities
+- Remote camera restart functionality
+
+## Camera Type Statistics
+
+The main camera view displays real-time counts by type:
+
+<CardGroup cols={3}>
+  <Card title="Fixed Cameras" icon="video">
+    Standard fixed-position cameras for general surveillance
+  </Card>
+  <Card title="Fixed FR Cameras" icon="user-check">
+    Fixed cameras with facial recognition capabilities
+  </Card>
+  <Card title="Fixed LPR Cameras" icon="car">
+    License Plate Recognition cameras (including NV and AV variants)
+  </Card>
+  <Card title="Dome Cameras" icon="sphere">
+    PTZ dome cameras with 360° coverage
+  </Card>
+  <Card title="Dual Dome Cameras" icon="circle-dot">
+    Dome cameras with dual sensors (thermal/optical)
+  </Card>
+  <Card title="BDE (Totem) Cameras" icon="tower-broadcast">
+    Specialized totem surveillance stations
+  </Card>
+</CardGroup>
+
+**Additional Statistics:**
+- **Total Cameras**: Count of all cameras (excluding BDE totems)
+- **Total Channels**: Sum of all camera channels across the network
+- Counts include only cameras at active sites
+
+## Searching Cameras
+
+Find cameras using multiple search criteria:
+
+**Search by:**
+- IP address
+- Camera name
+- Site name
+- Camera type
+
+The search performs partial matches across all fields. Results display 100 cameras per page, sorted by ID.
+
+## Creating New Cameras
+
+Add cameras to the system with complete technical specifications:
+
+<Steps>
+  <Step title="Select Camera Type">
+    Choose from available camera types:
+    - Fixed
+    - Fixed - FR (Facial Recognition)
+    - Fixed - LPR (License Plate Recognition)
+    - Fixed - LPR NV (Night Vision)
+    - Fixed - LPR AV (Advanced Vision)
+    - Dome
+    - Dual Dome
+    - BDE (Totem)
+  </Step>
+  <Step title="Select Site">
+    Assign the camera to an active site. The site determines the camera's geographic location (latitude/longitude).
+  </Step>
+  <Step title="Enter Network Information">
+    Configure network settings:
+    - **IP Address**: Camera's network IP
+    - **Camera Name**: Descriptive identifier
+  </Step>
+  <Step title="Set Orientation">
+    Specify camera viewing direction:
+    - North, South, East, West
+    - Southeast, Southwest, Northeast, Northwest
+    - **Angle**: Numeric angle value (degrees)
+  </Step>
+  <Step title="Add Technical Details">
+    Record technical specifications:
+    - **Serial Number**: Device serial number
+    - **Intelligence**: AI/analytics capabilities
+    - **Installation Date**: When camera was installed
+    - **Stage**: Deployment phase (e.g., "Phase 1", "Phase 2")
+  </Step>
+  <Step title="Add Observations">
+    Include any special notes, issues, or configuration details
+  </Step>
+</Steps>
+
+<Info>
+  Camera coordinates (latitude/longitude) are automatically inherited from the selected site. This ensures consistent geographic positioning.
+</Info>
+
+## Viewing Camera Details
+
+Each camera record displays:
+
+**Identification:**
+- Camera name
+- IP address
+- Serial number
+- Camera type
+
+**Location Data:**
+- Assigned site
+- Latitude and longitude (from site)
+- Orientation direction
+- Viewing angle
+
+**Technical Information:**
+- Intelligence/analytics features
+- Installation date
+- Deployment stage
+- Observations
+
+**Operational Data:**
+- Site active status
+- Associated site details
+- Physical camera reference (if applicable)
+
+## Editing Cameras
+
+Update camera information as needed:
+
+**Editable Fields:**
+- IP address
+- Camera name
+- Camera type
+- Assigned site (coordinates update automatically)
+- Intelligence features
+- Serial number
+- Orientation and angle
+- Installation date
+- Stage
+- Observations
+
+<Note>
+  When you change the assigned site, the camera's latitude and longitude automatically update to match the new site's coordinates.
+</Note>
+
+**Validation:**
+- Site selection is required
+- Camera type must be selected from valid options
+- All updates are logged in the audit system
+
+## Deleting Cameras
+
+Remove cameras from the inventory:
+
+- Deletion is permanent
+- Removes all camera data
+- Associated audit records may be preserved (depending on configuration)
+
+<Warning>
+  Ensure you want to permanently remove the camera before confirming deletion. Consider deactivating the site instead if you may need the camera data later.
+</Warning>
+
+## Remote Camera Operations
+
+### Restarting Cameras
+
+Initiate remote camera restarts:
+
+<Steps>
+  <Step title="Select Camera">
+    Choose the camera to restart from the camera list
+  </Step>
+  <Step title="Click Restart">
+    System generates restart URL with camera credentials
+  </Step>
+  <Step title="New Tab Opens">
+    Restart command opens in new browser tab
+  </Step>
+  <Step title="Confirm Restart">
+    Camera receives reboot command via CGI interface
+  </Step>
+</Steps>
+
+**Restart URL Format:**
+```
+http://{username}:{password}@{camera_ip}/cgi-bin/magicBox.cgi?action=reboot
+```
+
+<Info>
+  Camera credentials are retrieved from environment variables (CAMARA_USER and CAMARA_PASS). Ensure these are properly configured in your system.
+</Info>
+
+## Camera Types Explained
+
+<Accordion title="Fixed Cameras">
+  **Fixed Cameras** - Standard surveillance cameras
+  
+  - Static viewing angle
+  - General-purpose surveillance
+  - Most common camera type
+  - Various resolution options
+</Accordion>
+
+<Accordion title="Fixed FR Cameras">
+  **Fixed - FR (Facial Recognition)** - Cameras with facial recognition AI
+  
+  - Biometric identification capabilities
+  - Real-time facial matching
+  - Integration with identity databases
+  - Specialized positioning requirements
+</Accordion>
+
+<Accordion title="Fixed LPR Cameras">
+  **Fixed - LPR (License Plate Recognition)** - Automatic license plate capture
+  
+  - **LPR**: Standard license plate recognition
+  - **LPR NV**: Night vision variant
+  - **LPR AV**: Advanced vision with additional features
+  - Automatic vehicle identification
+  - Traffic monitoring
+</Accordion>
+
+<Accordion title="Dome Cameras">
+  **Dome Cameras** - PTZ (Pan-Tilt-Zoom) surveillance
+  
+  - 360-degree coverage
+  - Remote control of viewing angle
+  - Zoom capabilities
+  - Indoor and outdoor variants
+</Accordion>
+
+<Accordion title="Dual Dome Cameras">
+  **Dual Dome Cameras** - Multi-sensor domes
+  
+  - Two independent sensors
+  - Often thermal + optical
+  - Enhanced detection capabilities
+  - Day/night operation
+</Accordion>
+
+<Accordion title="BDE (Totem) Cameras">
+  **BDE (Totem)** - Specialized surveillance stations
+  
+  - Multi-camera units
+  - Integrated in totem structures
+  - May include multiple camera types
+  - Counted separately in statistics
+</Accordion>
+
+## Site Association
+
+Cameras are always associated with sites:
+
+**Site provides:**
+- Geographic location (lat/long)
+- Physical location description
+- Active/inactive status
+- Grouping for multiple cameras
+
+**Active vs Inactive Sites:**
+- Only cameras at active sites are included in statistics
+- Inactive site cameras remain in database but excluded from counts
+- Useful for maintenance periods or decommissioned locations
+
+<Info>
+  Multiple cameras can be assigned to the same site. This is common for intersections or buildings with multiple viewing angles.
+</Info>
+
+## Intelligence Features
+
+Track AI and analytics capabilities:
+
+**Intelligence Types:**
+- Facial recognition
+- License plate recognition
+- Object detection
+- Behavioral analysis
+- Crowd detection
+- Intrusion detection
+- Line crossing
+- Loitering detection
+
+Record what intelligence features each camera supports for reporting and deployment planning.
+
+## Import/Export Operations
+
+### Importing Cameras
+
+Bulk import cameras from Excel:
+
+<Steps>
+  <Step title="Prepare Excel File">
+    Format your Excel file with required columns:
+    - Camera name
+    - IP address
+    - Type
+    - Intelligence features
+    - Brand and model
+    - Serial number
+    - Stage
+    - Site
+    - Coordinates
+  </Step>
+  <Step title="Upload File">
+    Select Excel file through the import interface
+  </Step>
+  <Step title="System Processes">
+    System validates and imports camera records
+  </Step>
+  <Step title="Confirmation">
+    Success message displays number of cameras imported
+  </Step>
+</Steps>
+
+### Exporting Cameras
+
+Generate complete camera inventory in Excel:
+
+- All camera details included
+- Technical specifications
+- Site associations
+- Current status
+- Export filename: `ListadoCamaras_YYYY-MM-DD_HH-MM-SS.xlsx`
+
+## Best Practices
+
+<CardGroup cols={1}>
+  <Card title="Use Consistent Naming" icon="tag">
+    Establish a naming convention for cameras (e.g., "CAM_SiteAbbrev_Direction_Number")
+  </Card>
+  <Card title="Keep Sites Active" icon="toggle-on">
+    Only deactivate sites when cameras are truly offline. Active/inactive affects statistics.
+  </Card>
+  <Card title="Record Accurate Coordinates" icon="map-pin">
+    Ensure sites have correct lat/long so camera positions are accurate on maps.
+  </Card>
+  <Card title="Document Intelligence Features" icon="brain">
+    Always specify what AI/analytics each camera supports for accurate capability reporting.
+  </Card>
+  <Card title="Set Correct Orientation" icon="compass">
+    Accurate orientation data helps with coverage analysis and gap identification.
+  </Card>
+  <Card title="Track Installation Dates" icon="calendar-plus">
+    Record installation dates for warranty tracking and maintenance scheduling.
+  </Card>
+  <Card title="Use Stage Field" icon="list-ol">
+    Track deployment phases for project management and rollout planning.
+  </Card>
+  <Card title="Regular Exports" icon="download">
+    Export camera data regularly as backups and for external analysis.
+  </Card>
+</CardGroup>

@@ -1,0 +1,425 @@
+---
+title: Cameras API
+description: Manage surveillance cameras, sites, and video surveillance infrastructure
+---
+
+## Overview
+
+The Cameras API manages surveillance camera infrastructure including fixed cameras, domes, LPR cameras, and facial recognition cameras. Each camera is associated with a site and has properties for location, orientation, and technical specifications.
+
+## Endpoints
+
+### List Cameras
+
+Retrieve a paginated list of surveillance cameras with statistics.
+
+```http
+GET /camaras
+```
+
+<ParamField query="texto" type="string">
+  Search by IP address, camera name, site name, or camera type
+</ParamField>
+
+<ParamField query="page" type="integer" default="1">
+  Page number (100 items per page)
+</ParamField>
+
+**Response**
+
+<ResponseField name="camaras" type="array">
+  Array of camera objects
+  
+  <Expandable title="Camera Object">
+    <ResponseField name="id" type="integer">
+      Camera ID
+    </ResponseField>
+    
+    <ResponseField name="ip" type="string">
+      Camera IP address
+    </ResponseField>
+    
+    <ResponseField name="nombre" type="string">
+      Camera name/description
+    </ResponseField>
+    
+    <ResponseField name="tipo_camara_id" type="integer">
+      Camera type ID (references tipo_camara table)
+    </ResponseField>
+    
+    <ResponseField name="sitio_id" type="integer">
+      Site ID where camera is installed
+    </ResponseField>
+    
+    <ResponseField name="latitud" type="string">
+      Geographic latitude
+    </ResponseField>
+    
+    <ResponseField name="longitud" type="string">
+      Geographic longitude
+    </ResponseField>
+    
+    <ResponseField name="orientacion" type="string">
+      Camera orientation (NORTE, SUR, ESTE, OESTE, SURESTE, SUROESTE, NORESTE, NOROESTE)
+    </ResponseField>
+    
+    <ResponseField name="angulo" type="decimal">
+      Viewing angle in degrees
+    </ResponseField>
+    
+    <ResponseField name="inteligencia" type="string">
+      Intelligent features enabled (LPR, facial recognition, etc.)
+    </ResponseField>
+    
+    <ResponseField name="nro_serie" type="string">
+      Camera serial number
+    </ResponseField>
+    
+    <ResponseField name="fecha_instalacion" type="date">
+      Installation date
+    </ResponseField>
+    
+    <ResponseField name="etapa" type="string">
+      Project stage/phase
+    </ResponseField>
+    
+    <ResponseField name="observaciones" type="text">
+      Additional notes
+    </ResponseField>
+    
+    <ResponseField name="sitio" type="object">
+      Related site object with location details
+    </ResponseField>
+    
+    <ResponseField name="tipoCamara" type="object">
+      Related camera type object
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+<ResponseField name="statistics" type="object">
+  Camera statistics by type
+  
+  <Expandable title="Statistics">
+    <ResponseField name="fijas" type="integer">
+      Count of fixed cameras
+    </ResponseField>
+    
+    <ResponseField name="fijasFR" type="integer">
+      Count of fixed cameras with facial recognition
+    </ResponseField>
+    
+    <ResponseField name="fijasLPR" type="integer">
+      Count of LPR (License Plate Recognition) cameras
+    </ResponseField>
+    
+    <ResponseField name="domos" type="integer">
+      Count of dome cameras
+    </ResponseField>
+    
+    <ResponseField name="domosDuales" type="integer">
+      Count of dual dome cameras
+    </ResponseField>
+    
+    <ResponseField name="bde" type="integer">
+      Count of BDE (Totem) cameras
+    </ResponseField>
+    
+    <ResponseField name="totalCam" type="integer">
+      Total active cameras (excluding BDE)
+    </ResponseField>
+    
+    <ResponseField name="cantidadCanales" type="integer">
+      Total camera channels
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+**Example Request**
+
+```bash
+curl -X GET "https://your-domain.com/camaras?texto=192.168" \
+  -H "Cookie: your-session-cookie"
+```
+
+### Create Camera
+
+Create a new surveillance camera record.
+
+```http
+POST /camaras
+```
+
+**Request Body**
+
+<ParamField body="tipo_camara_id" type="integer" required>
+  Camera type ID (cannot be "Selecciona un tipo de cámara")
+</ParamField>
+
+<ParamField body="sitio_id" type="integer" required>
+  Site ID (cannot be "Seleccionar")
+</ParamField>
+
+<ParamField body="ip" type="string">
+  Camera IP address
+</ParamField>
+
+<ParamField body="nombre" type="string">
+  Camera name or description
+</ParamField>
+
+<ParamField body="orientacion" type="string">
+  Camera orientation (NORTE, SUR, ESTE, OESTE, SURESTE, SUROESTE, NORESTE, NOROESTE)
+</ParamField>
+
+<ParamField body="angulo" type="decimal">
+  Viewing angle in degrees
+</ParamField>
+
+<ParamField body="inteligencia" type="string">
+  Intelligent features description
+</ParamField>
+
+<ParamField body="nro_serie" type="string">
+  Serial number
+</ParamField>
+
+<ParamField body="fecha_instalacion" type="date">
+  Installation date
+</ParamField>
+
+<ParamField body="etapa" type="string">
+  Project stage/phase
+</ParamField>
+
+<ParamField body="observaciones" type="text">
+  Observations
+</ParamField>
+
+**Example Request**
+
+```bash
+curl -X POST "https://your-domain.com/camaras" \
+  -H "Content-Type: application/x-www-form-urlencoded" \
+  -H "Cookie: your-session-cookie" \
+  -d "tipo_camara_id=3" \
+  -d "sitio_id=12" \
+  -d "ip=192.168.1.100" \
+  -d "nombre=Camara Entrada Principal" \
+  -d "orientacion=NORTE" \
+  -d "angulo=45" \
+  -d "fecha_instalacion=2024-01-15"
+```
+
+**Response**
+
+Redirects to `/camaras` on success.
+
+**Note**: Latitude and longitude are automatically set from the site's location.
+
+### Show Camera
+
+```http
+GET /camaras/{id}
+```
+
+<ParamField path="id" type="integer" required>
+  Camera ID
+</ParamField>
+
+### Update Camera
+
+Update an existing camera record.
+
+```http
+PUT /camaras/{id}
+```
+
+<ParamField path="id" type="integer" required>
+  Camera ID to update
+</ParamField>
+
+**Request Body**
+
+Same parameters as create endpoint.
+
+**Example Request**
+
+```bash
+curl -X PUT "https://your-domain.com/camaras/45" \
+  -H "Content-Type: application/x-www-form-urlencoded" \
+  -H "Cookie: your-session-cookie" \
+  -d "tipo_camara_id=3" \
+  -d "sitio_id=12" \
+  -d "ip=192.168.1.101" \
+  -d "observaciones=IP address updated"
+```
+
+**Response**
+
+Redirects to `/camaras` on success.
+
+**Error Response**
+
+<ResponseField name="error" type="string">
+  "Error al actualizar cámara." - Camera update failed
+</ResponseField>
+
+### Delete Camera
+
+Delete a camera record.
+
+```http
+DELETE /camaras/{id}
+```
+
+<ParamField path="id" type="integer" required>
+  Camera ID to delete
+</ParamField>
+
+**Response**
+
+Redirects to `/camaras` on success.
+
+## Additional Endpoints
+
+### Restart Camera
+
+Send reboot command to a camera.
+
+```http
+POST /camaras/{id}/reiniciar
+```
+
+<ParamField path="id" type="integer" required>
+  Camera ID to restart
+</ParamField>
+
+**Response**
+
+Returns success message with URL to open in new tab:
+
+```
+http://{user}:{pass}@{ip}/cgi-bin/magicBox.cgi?action=reboot
+```
+
+**Note**: Uses credentials from environment variables `CAMARA_USER` and `CAMARA_PASS`.
+
+**Example Request**
+
+```bash
+curl -X POST "https://your-domain.com/camaras/45/reiniciar" \
+  -H "Cookie: your-session-cookie"
+```
+
+### Import Cameras from Excel
+
+Bulk import cameras from Excel file.
+
+```http
+POST /import-camaras
+```
+
+<ParamField body="excel_file" type="file" required>
+  Excel file containing camera data
+</ParamField>
+
+**Example Request**
+
+```bash
+curl -X POST "https://your-domain.com/import-camaras" \
+  -H "Cookie: your-session-cookie" \
+  -F "excel_file=@camaras.xlsx"
+```
+
+**Response**
+
+```json
+{
+  "success": "Los datos se han importado correctamente"
+}
+```
+
+### Export Cameras to Excel
+
+Export all camera records to Excel.
+
+```http
+GET /export-camaras
+```
+
+**Response**
+
+Downloads Excel file: `ListadoCamaras_{timestamp}.xlsx`
+
+**Example Request**
+
+```bash
+curl -X GET "https://your-domain.com/export-camaras" \
+  -H "Cookie: your-session-cookie" \
+  -o camaras.xlsx
+```
+
+## Camera Types
+
+Supported camera types:
+
+- **Fija** - Fixed camera
+- **Fija - FR** - Fixed camera with facial recognition
+- **Fija - LPR** - Fixed camera with license plate recognition
+- **Fija - LPR NV** - Fixed LPR camera (night vision)
+- **Fija - LPR AV** - Fixed LPR camera (analytics vision)
+- **Domo** - Dome camera (PTZ)
+- **Domo Dual** - Dual dome camera
+- **BDE (Totem)** - Totem/BDE camera
+
+## Orientation Values
+
+Valid orientation values:
+
+- NORTE
+- SUR
+- ESTE
+- OESTE
+- SURESTE
+- SUROESTE
+- NORESTE
+- NOROESTE
+
+## Error Codes
+
+<ResponseField name="400" type="error">
+  Bad Request - Validation error or missing required fields
+</ResponseField>
+
+<ResponseField name="401" type="error">
+  Unauthorized - Authentication required
+</ResponseField>
+
+<ResponseField name="403" type="error">
+  Forbidden - Missing permissions (ver-camara, crear-camara, editar-camara, borrar-camara)
+</ResponseField>
+
+<ResponseField name="404" type="error">
+  Not Found - Camera not found
+</ResponseField>
+
+## Models
+
+### Camara Model
+
+Represents a surveillance camera.
+
+**Relationships**
+
+- `tipoCamara` - BelongsTo TipoCamara (camera specifications)
+- `sitio` - BelongsTo Sitio (installation site)
+- `destino` - BelongsTo Destino (department)
+- `camaraFisica` - BelongsTo CamaraFisica (physical camera device)
+- `auditoria` - HasMany Auditoria (audit trail)
+
+**Source Code Reference**
+
+Controller: `app/Http/Controllers/CamaraController.php:1-358`
+
+Model: `app/Models/Camara.php:1-52`

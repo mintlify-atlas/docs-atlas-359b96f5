@@ -1,0 +1,355 @@
+---
+title: 'Advanced Search'
+description: 'Filter and search across equipment, cameras, and fleet resources'
+---
+
+## Overview
+
+C.A.R. 911 provides comprehensive search and filtering capabilities across all major resources. You can combine multiple filters to narrow down results and find exactly what you need.
+
+## Equipment Search
+
+Search and filter equipment with multiple criteria:
+
+### Text Search
+
+Search across multiple fields simultaneously:
+
+```php
+// Export: app/Exports/EquiposExport.php:121-129
+if (!empty($filters['texto'])) {
+    $texto = $filters['texto'];
+    $query->where(function ($q) use ($texto) {
+        $q->where('equipos.issi', 'like', '%' . $texto . '%')
+            ->orWhere('equipos.tei', 'like', '%' . $texto . '%')
+            ->orWhere('recursos.nombre', 'like', '%' . $texto . '%')
+            ->orWhere('destino.nombre', 'like', '%' . $texto . '%');
+    });
+}
+```
+
+### Equipment Filters
+
+<Steps>
+  <Step title="Filter by Equipment Type">
+    Select specific equipment types:
+
+    ```php
+    // Export: app/Exports/EquiposExport.php:131-133
+    if (!empty($filters['equipo_id'])) {
+        $query->whereIn('equipos.id', $filters['equipo_id']);
+    }
+    ```
+  </Step>
+
+  <Step title="Filter by Resource">
+    Find equipment assigned to specific resources:
+
+    ```php
+    // Export: app/Exports/EquiposExport.php:135-137
+    if (!empty($filters['recurso_id'])) {
+        $query->whereIn('flota_general.recurso_id', $filters['recurso_id']);
+    }
+    ```
+  </Step>
+
+  <Step title="Filter by Terminal Type">
+    Search by terminal type:
+
+    ```php
+    // Export: app/Exports/EquiposExport.php:175-177
+    if (!empty($filters['tipo_terminal_id'])) {
+        $query->whereIn('equipos.tipo_terminal_id', $filters['tipo_terminal_id']);
+    }
+    ```
+  </Step>
+
+  <Step title="Filter by State">
+    Find equipment in specific states:
+
+    ```php
+    // Export: app/Exports/EquiposExport.php:179-181
+    if (!empty($filters['estado_id'])) {
+        $query->whereIn('equipos.estado_id', $filters['estado_id']);
+    }
+    ```
+  </Step>
+</Steps>
+
+## Hierarchical Destination Search
+
+The system supports hierarchical searching through organizational units:
+
+<Note>
+When you filter by destination, the system automatically includes all child destinations in the hierarchy.
+</Note>
+
+### Current Destination Filter
+
+Find equipment currently assigned to a destination or its children:
+
+```php
+// Export: app/Exports/EquiposExport.php:139-158
+if (!empty($filters['destino_actual_id'])) {
+    $todosLosDestinosActuales = collect();
+    
+    foreach ($filters['destino_actual_id'] as $destinoId) {
+        $destinosHijos = Destino::obtenerTodosLosHijos($destinoId);
+        $todosLosDestinosActuales = $todosLosDestinosActuales->merge($destinosHijos);
+    }
+    
+    $destinosActualesIds = $todosLosDestinosActuales->unique()->values()->all();
+    
+    if (!empty($destinosActualesIds)) {
+        $query->whereExists(function ($subQuery) use ($destinosActualesIds) {
+            $subQuery->select(DB::raw(1))
+                ->from('historico as historico_actual')
+                ->whereColumn('historico_actual.equipo_id', 'equipos.id')
+                ->whereIn('historico_actual.destino_id', $destinosActualesIds)
+                ->whereNull('historico_actual.fecha_desasignacion');
+        });
+    }
+}
+```
+
+### Historical Destination Filter
+
+Search by any historical assignment:
+
+```php
+// Export: app/Exports/EquiposExport.php:160-173
+if (!empty($filters['destino_id'])) {
+    $todosLosDestinos = collect();
+    
+    foreach ($filters['destino_id'] as $destinoId) {
+        $destinosHijos = Destino::obtenerTodosLosHijos($destinoId);
+        $todosLosDestinos = $todosLosDestinos->merge($destinosHijos);
+    }
+    
+    $destinosIds = $todosLosDestinos->unique()->values()->all();
+    
+    if (!empty($destinosIds)) {
+        $query->whereIn('flota_general.destino_id', $destinosIds);
+    }
+}
+```
+
+## Date Range Filtering
+
+Search by assignment date ranges:
+
+```php
+// Export: app/Exports/EquiposExport.php:183-198
+if (!empty($filters['fecha_rango'])) {
+    $partes = explode(' - ', $filters['fecha_rango']);
+    
+    if (count($partes) === 2) {
+        $fechaInicio = Carbon::parse($partes[0])->startOfDay();
+        $fechaFin = Carbon::parse($partes[1])->endOfDay();
+        
+        $query->whereExists(function ($subQuery) use ($fechaInicio, $fechaFin) {
+            $subQuery->select(DB::raw(1))
+                ->from('historico as historico_fecha')
+                ->whereColumn('historico_fecha.equipo_id', 'equipos.id')
+                ->whereBetween('historico_fecha.fecha_asignacion', 
+                              [$fechaInicio, $fechaFin])
+                ->whereNull('historico_fecha.fecha_desasignacion');
+        });
+    }
+}
+```
+
+## Task Search
+
+Filter tasks by multiple criteria:
+
+### Task Name Filter
+
+```php
+// Controller: app/Http/Controllers/TareaController.php:35-40
+if ($request->filled('nombre')) {
+    $nombre = $request->nombre;
+    $query->whereHas('tarea', function ($q) use ($nombre) {
+        $q->where('nombre', 'like', '%' . $nombre . '%');
+    });
+}
+```
+
+### Task Status Filter
+
+```php
+// Controller: app/Http/Controllers/TareaController.php:42-44
+if ($request->filled('estado')) {
+    $query->where('estado', $request->estado);
+}
+```
+
+### Task Date Filters
+
+<Accordion title="Scheduled Date Range">
+  Filter by when tasks are scheduled:
+
+  ```php
+  // Controller: app/Http/Controllers/TareaController.php:55-61
+  if ($request->filled('fecha_programada_desde')) {
+      $query->whereDate('fecha_programada', '>=', 
+                       $request->fecha_programada_desde);
+  }
+  
+  if ($request->filled('fecha_programada_hasta')) {
+      $query->whereDate('fecha_programada', '<=', 
+                       $request->fecha_programada_hasta);
+  }
+  ```
+</Accordion>
+
+<Accordion title="Completion Date Range">
+  Filter by when tasks were completed:
+
+  ```php
+  // Controller: app/Http/Controllers/TareaController.php:96-102
+  if ($request->filled('fecha_realizada_desde')) {
+      $query->whereDate('fecha_realizada', '>=', 
+                       $request->fecha_realizada_desde);
+  }
+  
+  if ($request->filled('fecha_realizada_hasta')) {
+      $query->whereDate('fecha_realizada', '<=', 
+                       $request->fecha_realizada_hasta);
+  }
+  ```
+</Accordion>
+
+### Task Assignment Filter
+
+```php
+// Controller: app/Http/Controllers/TareaController.php:46-48
+if ($request->filled('realizado_por')) {
+    $query->where('realizado_por', $request->realizado_por);
+}
+```
+
+## Audit Log Search
+
+Search audit logs with comprehensive filters:
+
+### Combined Filters
+
+<Steps>
+  <Step title="Text Search">
+    Search in action descriptions and changes:
+
+    ```php
+    // Controller: app/Http/Controllers/AuditoriaController.php:28-33
+    if ($texto) {
+        $query->where(function ($q) use ($texto) {
+            $q->where('accion', 'LIKE', '%' . $texto . '%')
+                ->orWhere('cambios', 'LIKE', '%' . $texto . '%');
+        });
+    }
+    ```
+  </Step>
+
+  <Step title="Table Filter">
+    Filter by affected table:
+
+    ```php
+    // Controller: app/Http/Controllers/AuditoriaController.php:36-38
+    if ($tabla) {
+        $query->where('nombre_tabla', $tabla);
+    }
+    ```
+  </Step>
+
+  <Step title="User Filter">
+    Filter by who made changes:
+
+    ```php
+    // Controller: app/Http/Controllers/AuditoriaController.php:40-43
+    if ($usuario) {
+        $query->where('user_id', $usuario);
+    }
+    ```
+  </Step>
+
+  <Step title="Date Range">
+    Filter by when changes occurred:
+
+    ```php
+    // Controller: app/Http/Controllers/AuditoriaController.php:45-51
+    if ($fecha_desde) {
+        $query->whereDate('created_at', '>=', $fecha_desde);
+    }
+    if ($fecha_hasta) {
+        $query->whereDate('created_at', '<=', $fecha_hasta);
+    }
+    ```
+  </Step>
+</Steps>
+
+## Advanced Search Route
+
+Access the advanced search interface:
+
+```php
+// Routes: routes/web.php:111-112
+Route::get('/busqueda-avanzada', 
+    [FlotaGeneralController::class, 'busquedaAvanzada'])
+    ->name('flota.busquedaAvanzada');
+
+Route::get('/busqueda-avanzada/export-excel', 
+    [FlotaGeneralController::class, 'exportExcelBusquedaAvanzada'])
+    ->name('flota.busquedaAvanzada.export');
+```
+
+## Search with Relationships
+
+The equipment search joins multiple tables for comprehensive results:
+
+```php
+// Export: app/Exports/EquiposExport.php:51-88
+$query = Equipo::select(
+    'equipos.id',
+    DB::raw("CONCAT(tipo_terminales.marca, ' ', tipo_terminales.modelo) AS terminal"),
+    'estados.nombre as estado',
+    'equipos.provisto as provisto',
+    'destino.nombre as dependencia',
+    'equipos.nombre_issi as id_issi',
+    'equipos.issi as issi',
+    'equipos.tei as tei',
+    'recursos.nombre as recurso',
+    'destino_padre.nombre as dependencia_superior',
+    'historico.fecha_asignacion',
+    'flota_general.ticket_per',
+    'vehiculos.marca as vehiculo_marca',
+    'vehiculos.modelo as vehiculo_modelo',
+    'vehiculos.dominio as vehiculo_patente',
+    'flota_general.observaciones as observaciones_flota'
+)
+->leftJoin('flota_general', 'equipos.id', '=', 'flota_general.equipo_id')
+->leftJoin('recursos', 'flota_general.recurso_id', '=', 'recursos.id')
+->leftJoin('destino', 'flota_general.destino_id', '=', 'destino.id')
+->leftJoin('destino as destino_padre', 'destino.parent_id', '=', 'destino_padre.id')
+->leftJoin('vehiculos', 'recursos.vehiculo_id', '=', 'vehiculos.id')
+->leftJoin('tipo_terminales', 'equipos.tipo_terminal_id', '=', 'tipo_terminales.id')
+->leftJoin('estados', 'equipos.estado_id', '=', 'estados.id');
+```
+
+<Tip>
+All search filters support wildcards and partial matches, making it easy to find resources even with incomplete information.
+</Tip>
+
+## Pagination
+
+Search results are paginated for performance:
+
+```php
+// Controller: app/Http/Controllers/TareaController.php:109-111
+$items = $query
+    ->paginate(15)
+    ->appends($request->query());
+```
+
+<Note>
+All filters persist through pagination by appending query parameters to pagination links.
+</Note>

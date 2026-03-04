@@ -1,0 +1,383 @@
+---
+title: Organizational Dependencies
+description: Manage police organizational hierarchy including headquarters, departments, divisions, stations, and sections
+---
+
+The Dependencies (Dependencias) module manages your complete organizational structure, from police headquarters down to individual sections and detachments. This hierarchical system is fundamental to equipment assignments, fleet management, and reporting.
+
+## Overview
+
+Dependencies represent the organizational units in your police structure:
+
+- **Jefatura** (Headquarters): Top-level organization
+- **Subjefatura** (Sub-headquarters): Secondary command level
+- **Dirección** (Direction): Department-level command
+- **Departamental**: Regional departmental unit
+- **División** (Division): Specialized divisions
+- **Comisaría** (Police Station): Local police stations
+- **Sección** (Section): Specialized sections within larger units
+- **Destacamento** (Detachment): Small outposts or substations
+- **Área** (Area): Flexible organizational areas
+
+Each dependency can have parent-child relationships, creating a complete organizational tree.
+
+## Viewing Dependencies
+
+The main dependencies list displays:
+
+**Organizational Data:**
+- Dependency name
+- Type (with color-coded badges)
+- Parent dependency
+- Child dependencies count
+- Contact information (phone, location)
+- Hierarchical level
+
+**Sorting:**
+- Automatically sorted by hierarchical level
+- Then alphabetically within each level
+- Shows organizational structure clearly
+
+**Statistics Dashboard:**
+- Total count by type
+- Hierarchy visualization
+- Quick access to each level
+
+<Info>
+  Dependencies are displayed in hierarchical order: Headquarters → Directions → Departmentals → Divisions → Stations → Sections → Detachments
+</Info>
+
+## Organizational Hierarchy
+
+Understanding the valid parent-child relationships:
+
+<Accordion title="Jefatura (Headquarters)">
+  **Jefatura** - Top of hierarchy
+  
+  - No parent (root level)
+  - Can have: Subjefatura, Dirección, Departamental as children
+  - Typically only one per organization
+</Accordion>
+
+<Accordion title="Subjefatura (Sub-headquarters)">
+  **Subjefatura** - Secondary command level
+  
+  - Parent: Jefatura
+  - Can have: Dirección as children
+  - Optional intermediate level
+</Accordion>
+
+<Accordion title="Dirección (Direction)">
+  **Dirección** - Department-level command
+  
+  - Parent: Jefatura or Subjefatura
+  - Can have: Departamental, División, Sección as children
+  - Examples: "Dirección Operaciones y Seguridad"
+</Accordion>
+
+<Accordion title="Departamental">
+  **Departamental** - Regional departmental unit
+  
+  - Parent: Jefatura or Dirección
+  - Can have: División, Comisaría, Sección, Destacamento as children
+  - Typically represents geographic regions
+  - Example: "Departamental Paraná (JDP)"
+</Accordion>
+
+<Accordion title="División (Division)">
+  **División** - Specialized divisions
+  
+  - Parent: Jefatura, Dirección, or Departamental
+  - Can have: Comisaría, Sección, Destacamento as children
+  - Functional specializations
+  - Examples: "División 911 y Videovigilancia", "División Seguridad Urbana y Bancaria"
+</Accordion>
+
+<Accordion title="Comisaría (Police Station)">
+  **Comisaría** - Local police stations
+  
+  - Parent: Departamental
+  - Can have: Sección, Destacamento as children
+  - Front-line operational units
+</Accordion>
+
+<Accordion title="Sección (Section)">
+  **Sección** - Specialized sections
+  
+  - Parent: Dirección, Departamental, División, or Comisaría
+  - Can have: Destacamento as children
+  - Specialized units within larger dependencies
+  - Examples: "Sección Técnica"
+</Accordion>
+
+<Accordion title="Destacamento (Detachment)">
+  **Destacamento** - Small outposts
+  
+  - Parent: Departamental, División, or Comisaría
+  - Typically no children (leaf nodes)
+  - Smallest organizational unit
+  - Examples: "Destacamento Tilcara"
+</Accordion>
+
+<Accordion title="Área (Area)">
+  **Área** - Flexible organizational areas
+  
+  - Parent: Any dependency type
+  - Can have children of any type
+  - Most flexible dependency type
+  - Used for special groupings
+</Accordion>
+
+## Creating Dependencies
+
+There are two methods for creating dependencies:
+
+### Method 1: Quick Create (Sections/Detachments Only)
+
+For creating sections and detachments with wizard:
+
+<Steps>
+  <Step title="Enter Name">
+    Type the section or detachment name (prefix "Sección" or "Destacamento" added automatically)
+  </Step>
+  <Step title="Select Type">
+    Choose either "Section" or "Detachment"
+  </Step>
+  <Step title="Choose Parent Hierarchy">
+    Select parent from dropdowns:
+    - Dirección (optional)
+    - Departamental (optional)
+    - División (optional)
+    - Comisaría (optional)
+    
+    System determines most specific parent automatically
+  </Step>
+  <Step title="Add Contact Info">
+    Optionally add:
+    - Phone number
+    - Physical location
+    - Observations
+  </Step>
+  <Step title="Create">
+    System validates hierarchy and creates dependency
+  </Step>
+</Steps>
+
+### Method 2: General Create (All Types)
+
+For creating any dependency type:
+
+<Steps>
+  <Step title="Enter Name">
+    Type dependency name (appropriate prefix added automatically)
+  </Step>
+  <Step title="Select Type">
+    Choose from all dependency types:
+    - Subjefatura
+    - Dirección
+    - Departamental
+    - División
+    - Comisaría
+    - Sección
+    - Destacamento
+    - Área
+  </Step>
+  <Step title="Choose Parent">
+    Select valid parent based on type (system filters valid options)
+  </Step>
+  <Step title="Add Details">
+    Enter:
+    - Phone number
+    - Physical location address
+    - Observations or notes
+  </Step>
+  <Step title="Validate and Create">
+    System validates hierarchy rules and creates dependency
+  </Step>
+</Steps>
+
+<Info>
+  The system automatically adds type prefixes to names. For example, entering "Técnica" for a Section becomes "Sección Técnica".
+</Info>
+
+**Validation Rules:**
+- Name is required
+- Type must be valid
+- Parent must be valid for the selected type
+- Cannot create circular references (child cannot be parent of its parent)
+- Hierarchy rules are enforced automatically
+
+## Editing Dependencies
+
+Update dependency information:
+
+**Editable Fields:**
+- Name (with automatic prefix)
+- Parent dependency (with hierarchy validation)
+- Phone number
+- Physical location
+- Observations
+
+<Warning>
+  Changing the parent dependency moves the unit in the organizational hierarchy. This affects all child dependencies and equipment assignments.
+</Warning>
+
+**Hierarchy Validation:**
+- System only shows valid parent options based on type
+- Prevents circular references
+- Validates hierarchy rules before saving
+
+**Circular Reference Check:**
+The system prevents creating loops:
+- Cannot set a child as parent
+- Cannot set grandchild as parent
+- Validates entire hierarchy chain
+
+## Deleting Dependencies
+
+Remove dependencies from the system:
+
+**Restrictions:**
+- Can only delete Sections and Detachments
+- Cannot delete if dependency has children
+- Cannot delete if equipment is assigned
+
+<Warning>
+  Deletion is permanent. Ensure the dependency has no children and no assigned equipment before deleting.
+</Warning>
+
+**Before Deleting:**
+1. Reassign all equipment to other dependencies
+2. Move or delete all child dependencies
+3. Verify no active fleet assignments
+4. Consider consequences for historical records
+
+## Dependency Relationships
+
+### Parent-Child Navigation
+
+Each dependency shows:
+- **Parent**: Direct parent in hierarchy ("Depends on")
+- **Children**: List of direct child dependencies
+- **Full Path**: Complete hierarchy from headquarters down
+
+### Hierarchical Queries
+
+The system provides methods to query organizational structure:
+
+**Get All Children:**
+```php
+Destino::obtenerTodosLosHijos($dependencyId)
+```
+Returns dependency and all descendants recursively.
+
+**Get Statistics:**
+```php
+Destino::getEstadisticas()
+```
+Returns count by type and hierarchy information.
+
+<Info>
+  When assigning equipment or filtering in fleet management, selecting a parent automatically includes all children in the query.
+</Info>
+
+## Dynamic Parent Selection
+
+When creating dependencies, parent options update dynamically:
+
+**AJAX-Based Cascading:**
+1. Select Dirección → loads Departamentals under it
+2. Select Departamental → loads Divisions under it
+3. Select División → loads Comisarías under it
+
+This ensures you only see valid parent options based on your selections.
+
+## Contact Information
+
+Track contact details for each dependency:
+
+**Phone Number:**
+- Direct contact number
+- Up to 50 characters
+- Optional field
+
+**Physical Location:**
+- Street address
+- Building or facility name
+- Geographic reference
+- Up to 255 characters
+
+**Observations:**
+- Notes about the dependency
+- Special instructions
+- Operational details
+- Unlimited text
+
+## Integration with Other Modules
+
+Dependencies are used throughout the system:
+
+**Fleet Management:**
+- Equipment assigned to dependencies
+- Hierarchical filtering in searches
+- Movement tracking between dependencies
+
+**Dashboard:**
+- Equipment distribution by dependency
+- Departmental and divisional views
+- Statistical reporting
+
+**Camera Management:**
+- Cameras associated with dependencies
+- Site-to-dependency mapping
+
+**Resource Management:**
+- Resources assigned to dependencies
+- Mobile units allocated by location
+
+**Bodycam Deliveries:**
+- Bodycams delivered to specific dependencies
+- Personnel assignments by location
+
+**Equipment Deliveries:**
+- Equipment delivered to dependencies
+- Assignment tracking by location
+
+## Dependency Statistics
+
+View system-wide statistics:
+
+- Count by type
+- Total dependencies
+- Hierarchy depth
+- Dependencies by parent
+- Geographic distribution (if location data available)
+
+## Best Practices
+
+<CardGroup cols={1}>
+  <Card title="Establish Hierarchy Early" icon="sitemap">
+    Create your organizational structure before assigning equipment for accurate tracking from the start.
+  </Card>
+  <Card title="Use Consistent Naming" icon="font">
+    Follow naming conventions for easy identification (system adds prefixes automatically).
+  </Card>
+  <Card title="Keep Contact Info Current" icon="address-book">
+    Update phone numbers and locations as they change for operational effectiveness.
+  </Card>
+  <Card title="Validate Before Deleting" icon="circle-exclamation">
+    Always check for children and equipment assignments before deleting.
+  </Card>
+  <Card title="Plan Hierarchy Changes" icon="route">
+    Changing parents affects equipment assignments and reports. Plan organizational changes carefully.
+  </Card>
+  <Card title="Document in Observations" icon="note-sticky">
+    Use observations field for operational notes, temporary changes, or special circumstances.
+  </Card>
+  <Card title="Regular Hierarchy Review" icon="list-check">
+    Periodically review organizational structure to ensure it matches operational reality.
+  </Card>
+  <Card title="Leverage Hierarchical Queries" icon="filter">
+    Use parent-level filtering in reports to automatically include all child dependencies.
+  </Card>
+</CardGroup>

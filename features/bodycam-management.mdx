@@ -1,0 +1,361 @@
+---
+title: Bodycam Management
+description: Track and manage body-worn camera inventory with status monitoring and assignment tracking
+---
+
+Bodycam Management provides complete inventory control for body-worn cameras, allowing you to track device status, assignments, and availability across your organization.
+
+## Overview
+
+The Bodycam Management system enables you to:
+
+- Maintain complete bodycam inventory
+- Track device status (Available, Delivered, Lost, Maintenance, Decommissioned)
+- Search by code, serial number, IMEI, brand, or model
+- Filter by operational status
+- Manage device lifecycle from acquisition to decommissioning
+- Track assignments and deliveries
+- Monitor available inventory
+
+## Bodycam Status Types
+
+Bodycams can be in one of five statuses:
+
+<CardGroup cols={2}>
+  <Card title="Available" icon="circle-check">
+    Bodycam is in inventory and ready for assignment. Available for delivery to personnel.
+  </Card>
+  <Card title="Delivered" icon="hand-holding">
+    Bodycam is currently assigned to and in possession of an officer or unit.
+  </Card>
+  <Card title="Lost" icon="triangle-exclamation">
+    Bodycam has been reported as missing or unaccounted for.
+  </Card>
+  <Card title="In Maintenance" icon="wrench">
+    Bodycam is undergoing repair, servicing, or technical evaluation.
+  </Card>
+  <Card title="Decommissioned" icon="ban">
+    Bodycam has been permanently removed from service.
+  </Card>
+</CardGroup>
+
+## Viewing Bodycam Inventory
+
+The main bodycam list displays all devices with:
+
+**Display Information:**
+- Device code (unique identifier)
+- Serial number
+- IMEI (if applicable)
+- Brand and model
+- Current status
+- SD card number
+- Battery number
+- Acquisition date
+- Observations
+
+**Filtering and Search:**
+- Search across code, serial number, IMEI, brand, and model
+- Filter by status using dropdown selector
+- Results paginated (10 per page)
+- Most recent devices shown first
+
+## Creating New Bodycams
+
+Add bodycams to inventory with complete device specifications:
+
+<Steps>
+  <Step title="Enter Device Code">
+    Assign a unique device code (required, must be unique)
+  </Step>
+  <Step title="Record Serial Number">
+    Enter manufacturer's serial number (required, must be unique)
+  </Step>
+  <Step title="Add Device Details">
+    Specify:
+    - **Brand**: Camera manufacturer (required)
+    - **Model**: Specific model (required)
+    - **IMEI**: Device IMEI if applicable
+  </Step>
+  <Step title="Set Initial Status">
+    Choose starting status (required):
+    - Available (most common for new devices)
+    - In Maintenance (if needs setup)
+    - Other statuses as appropriate
+  </Step>
+  <Step title="Add Accessory Information">
+    Record accessory details:
+    - **SD Card Number**: Storage card identifier
+    - **Battery Number**: Battery serial/identifier
+  </Step>
+  <Step title="Enter Acquisition Data">
+    Document acquisition:
+    - **Acquisition Date**: When device was obtained
+    - **Observations**: Any special notes or conditions
+  </Step>
+</Steps>
+
+<Info>
+  The system automatically records who created each bodycam entry. This is stored in the `usuario_creador` field for audit purposes.
+</Info>
+
+**Validation Rules:**
+- Device code must be unique
+- Serial number must be unique
+- Brand, model, and status are required fields
+- Status must be one of the five valid values
+
+## Viewing Bodycam Details
+
+The detail view shows complete information:
+
+**Device Identification:**
+- Device code
+- Serial number
+- IMEI
+- Brand and model
+
+**Current Status:**
+- Status badge with color coding
+- Status change history (if available)
+
+**Accessory Information:**
+- SD card number
+- Battery number
+
+**Administrative Data:**
+- Acquisition date
+- Creating user
+- Observations
+
+**Assignment Information:**
+- Current assignment (if delivered)
+- Assignment history
+- Delivery records
+- Return records
+
+## Editing Bodycams
+
+Update bodycam information as the device lifecycle progresses:
+
+**Editable Fields:**
+- Device code (with uniqueness validation)
+- Serial number (with uniqueness validation)
+- IMEI
+- Brand and model
+- Status (see Status Transitions)
+- SD card number
+- Battery number
+- Acquisition date
+- Observations
+
+<Note>
+  When changing status, consider the implications for any active assignments. For example, changing from "Delivered" to "Available" should typically coincide with processing a return.
+</Note>
+
+## Status Transitions
+
+Typical status workflows:
+
+<Accordion title="New Device → Available">
+  When bodycams arrive:
+  1. Create bodycam with "Available" status
+  2. Record accessories (SD card, battery)
+  3. Device ready for assignment
+</Accordion>
+
+<Accordion title="Available → Delivered">
+  When assigning to personnel:
+  1. Status changes to "Delivered"
+  2. Assignment record created
+  3. Officer receives device
+  
+  Status change typically handled automatically through the delivery system.
+</Accordion>
+
+<Accordion title="Delivered → Available">
+  When device returns:
+  1. Process return through delivery system
+  2. Status changes to "Available"
+  3. Device back in inventory
+  
+  Status change typically handled automatically through the return system.
+</Accordion>
+
+<Accordion title="Any Status → In Maintenance">
+  When repair needed:
+  1. Change status to "In Maintenance"
+  2. Document issue in observations
+  3. Device unavailable for assignment
+</Accordion>
+
+<Accordion title="In Maintenance → Available">
+  When repair complete:
+  1. Change status to "Available"
+  2. Note repair completion in observations
+  3. Device ready for assignment again
+</Accordion>
+
+<Accordion title="Any Status → Lost">
+  When device missing:
+  1. Change status to "Lost"
+  2. Document circumstances in observations
+  3. Device tracked as missing
+</Accordion>
+
+<Accordion title="Lost → Available">
+  When device recovered:
+  1. Change status to "Available"
+  2. Document recovery in observations
+  3. May need maintenance check before redeployment
+</Accordion>
+
+<Accordion title="Any Status → Decommissioned">
+  When removing from service:
+  1. Change status to "Decommissioned"
+  2. Document reason in observations
+  3. Device permanently out of service
+  
+  This is typically permanent. Consider carefully before decommissioning.
+</Accordion>
+
+## Deleting Bodycams
+
+Remove bodycams from the system:
+
+- Deletion is permanent
+- Removes all device data
+- Assignment and delivery history may be affected
+
+<Warning>
+  Consider changing status to "Decommissioned" instead of deleting to maintain historical records and audit trail.
+</Warning>
+
+## Integration with Delivery System
+
+Bodycam records integrate with the delivery/assignment system:
+
+**Automatic Status Updates:**
+- Creating a delivery changes status to "Delivered"
+- Processing a return changes status to "Available"
+- Marking as lost changes status to "Lost"
+
+**Assignment Tracking:**
+- View current assignments from bodycam detail
+- Access complete assignment history
+- See all delivery and return records
+- Track which officer has which device
+
+**Availability Checks:**
+- Only "Available" bodycams appear in assignment dropdowns
+- System prevents double-assignment
+- Real-time availability updates
+
+<Info>
+  The delivery system automatically maintains status consistency. Manual status changes should only be made when not using the delivery workflows.
+</Info>
+
+## Searching and Filtering
+
+**Search Capabilities:**
+- **Text Search**: Searches across code, serial number, IMEI, brand, and model simultaneously
+- **Status Filter**: Dropdown to filter by specific status
+- **Combined Search**: Use both text search and status filter together
+
+**Search Tips:**
+- Partial matches work (searching "CAM" finds "CAM001", "CAM002", etc.)
+- Search is case-insensitive
+- Status filter shows device count for each status
+
+## Accessory Tracking
+
+**SD Cards:**
+- Record SD card number/identifier
+- Track which card is in which device
+- Useful for managing replacements
+
+**Batteries:**
+- Record battery number/identifier
+- Track battery assignments
+- Important for maintenance and replacements
+
+<Note>
+  Consider including battery and SD card numbers in the device code or using a consistent numbering scheme for easy cross-reference.
+</Note>
+
+## Bodycam Scopes (Database Queries)
+
+The system provides pre-built query scopes for common operations:
+
+**Available Bodycams:**
+```php
+Bodycam::disponibles()->get()
+```
+Returns only bodycams with "Available" status.
+
+**Delivered Bodycams:**
+```php
+Bodycam::entregadas()->get()
+```
+Returns only bodycams currently delivered to personnel.
+
+**Search by Code:**
+```php
+Bodycam::porCodigo($search)->get()
+```
+Partial match search on device code.
+
+**Search by Serial:**
+```php
+Bodycam::porSerie($search)->get()
+```
+Partial match search on serial number.
+
+## Helper Methods
+
+Bodycam records provide convenient helper methods:
+
+**Status Checks:**
+- `$bodycam->estaDisponible()` - Returns true if status is "Available"
+- `$bodycam->estaEntregada()` - Returns true if status is "Delivered"
+
+**Assignment Info:**
+- `$bodycam->obtenerEntregaActual()` - Gets current active assignment
+
+**Status Changes:**
+- `$bodycam->marcarComoEntregada()` - Changes status to "Delivered"
+- `$bodycam->marcarComoDisponible()` - Changes status to "Available"
+- `$bodycam->marcarComoPerdida()` - Changes status to "Lost"
+
+**Display Helpers:**
+- `$bodycam->estado_formateado` - Returns human-readable status
+- `$bodycam->codigo_completo` - Returns "CODE - SERIAL" format
+
+## Best Practices
+
+<CardGroup cols={1}>
+  <Card title="Use Consistent Coding" icon="barcode">
+    Establish a device code format (e.g., "BCM001", "BCM002") for easy identification and sorting.
+  </Card>
+  <Card title="Record All Accessories" icon="box">
+    Always enter SD card and battery numbers for complete inventory tracking.
+  </Card>
+  <Card title="Update Status Promptly" icon="clock">
+    Change status immediately when device state changes for accurate availability.
+  </Card>
+  <Card title="Document Issues" icon="file-medical">
+    Use observations field to note any problems, repairs, or special conditions.
+  </Card>
+  <Card title="Track Acquisition Dates" icon="calendar">
+    Record acquisition dates for warranty tracking and asset lifecycle management.
+  </Card>
+  <Card title="Use Delivery System" icon="truck">
+    Rely on the delivery system for status changes when assigning to/from personnel.
+  </Card>
+  <Card title="Regular Status Reviews" icon="list-check">
+    Periodically review "Delivered" status devices to ensure assignments are current.
+  </Card>
+  <Card title="Decommission vs Delete" icon="trash-can">
+    Prefer "Decommissioned" status over deletion to maintain historical records.
+  </Card>
+</CardGroup>

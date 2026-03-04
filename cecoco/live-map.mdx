@@ -1,0 +1,234 @@
+---
+title: Live Map
+description: Monitor mobile units and active incidents in real-time using the interactive CECOCO live map powered by Leaflet
+---
+
+## Overview
+
+The CECOCO live map provides real-time visualization of mobile units, active incidents, and service locations on an interactive map interface. It uses Leaflet.js for rendering and updating map markers dynamically.
+
+<Info>
+The live map automatically refreshes data to show current positions of mobile units and ongoing incidents.
+</Info>
+
+## Accessing the Live Map
+
+Navigate to the live map view:
+
+```
+GET /indexMapaCecocoEnVivo
+```
+
+This route renders the live map interface:
+
+**CecocoController.php:77-81**
+```php
+public function indexMapaCecocoEnVivo()
+{
+    return view('cecoco.mapas.mapa_cecoco_en_vivo');
+}
+```
+
+<Note>
+You must have the `ver-moviles-cecoco` or `ver-eventos-cecoco` permission to access the live map.
+</Note>
+
+## Map Technology
+
+The live map is built using **Leaflet.js**, an open-source JavaScript library for interactive maps.
+
+**package.json:27**
+```json
+"leaflet": "^1.9.3"
+```
+
+Leaflet provides:
+- Interactive pan and zoom
+- Custom marker icons
+- Layer management
+- GeoJSON support
+- Mobile-friendly touch controls
+
+## Fetching Map Data
+
+The live map fetches data from the `/getRecursosCecoco` endpoint:
+
+```
+GET /getRecursosCecoco
+```
+
+This endpoint returns two types of data:
+
+### 1. Mobile Resources
+
+Active mobile units with their latest GPS positions:
+
+**CecocoController.php:91-109**
+```php
+$recursos = DB::connection('mysql_second')
+    ->table('ultimasposicionesgps')
+    ->select(
+        'ultimasposicionesgps.*',
+        'recursos.*',
+        'tiposrecurso.nombre as tipo_recurso',
+    )
+    ->join('recursos', 'recursos.id', '=', 'ultimasposicionesgps.recursos_id')
+    ->join('tiposrecurso', 'tiposrecurso.id', '=', 'recursos.idTipo')
+    ->whereBetween('ultimasposicionesgps.fecha', [$fecha_desde, $fecha_hasta])
+    ->where('ultimasposicionesgps.latitud', '!=', '0.0')
+    ->where('ultimasposicionesgps.longitud', '!=', '0.0')
+    ->get()
+    ->map(function ($result) {
+        // Convertir las coordenadas de radianes a grados decimales
+        $result->latitud_decimal = round($result->latitud / 0.0174533, 7);
+        $result->longitud_decimal = round($result->longitud / 0.0174533, 7);
+        return $result;
+    });
+```
+
+### 2. Active Services/Incidents
+
+Ongoing incidents with their locations:
+
+**CecocoController.php:111-130**
+```php
+$servicios = DB::connection('mysql_second')
+    ->table('servicios')
+    ->select(
+        'servicios.*',
+        'posicionamientosmapaservicio.*',
+        'sucesosservicio_policia.descripcion',
+        'sucesosservicio_policia.direccion',
+        'relacion_tiposservicio_servicios.*',
+        'tiposservicio.nombre as tipo_servicio',
+    )
+    ->join('posicionamientosmapaservicio', function ($join) {
+        $join->on('servicios.id', '=', 'posicionamientosmapaservicio.idServicio')
+            ->where('posicionamientosmapaservicio.latitud', '!=', '0.0')
+            ->where('posicionamientosmapaservicio.longitud', '!=', '0.0');
+    })
+    ->join('sucesosservicio_policia', 'servicios.id', '=', 'sucesosservicio_policia.idServicio')
+    ->join('relacion_tiposservicio_servicios', 'servicios.id', '=', 'relacion_tiposservicio_servicios.servicios_id')
+    ->join('tiposservicio', 'tiposservicio.id', '=', 'relacion_tiposservicio_servicios.tiposservicio_id')
+    ->whereBetween('servicios.fechaCreacion', [$fecha_desde, $fecha_hasta])
+    ->get();
+```
+
+### Response Format
+
+**CecocoController.php:133-136**
+```php
+return response()->json([
+    'recursos' => $recursos,
+    'servicios' => $servicios
+]);
+```
+
+## Coordinate Conversion
+
+<Note>
+GPS coordinates are stored in radians and must be converted to decimal degrees for display on the map.
+</Note>
+
+The conversion formula used:
+
+```php
+$result->latitud_decimal = round($result->latitud / 0.0174533, 7);
+$result->longitud_decimal = round($result->longitud / 0.0174533, 7);
+```
+
+Where `0.0174533` is the conversion factor (π/180).
+
+## Data Filtering
+
+The map only displays valid coordinates:
+
+```php
+->where('ultimasposicionesgps.latitud', '!=', '0.0')
+->where('ultimasposicionesgps.longitud', '!=', '0.0')
+```
+
+This prevents displaying markers at the null island (0,0) coordinate.
+
+## Map Layers
+
+You can display different data layers on the live map:
+
+<CardGroup cols={2}>
+  <Card title="Mobile Units" icon="car">
+    Shows current positions of patrol vehicles and emergency units
+  </Card>
+  
+  <Card title="Active Incidents" icon="siren-on">
+    Displays ongoing incidents with service type and description
+  </Card>
+  
+  <Card title="Service Areas" icon="map-pin">
+    Visualizes police station jurisdictions and coverage areas
+  </Card>
+  
+  <Card title="Historical Data" icon="clock-rotate-left">
+    Review past positions and completed incidents
+  </Card>
+</CardGroup>
+
+## Heat Map Visualization
+
+Access the heat map view to see incident density:
+
+```
+GET /indexMapaCalor
+```
+
+**CecocoController.php:44-75**
+```php
+public function indexMapaCalor()
+{
+    $tipificaciones = DB::connection('mysql_second')
+        ->table('tiposservicio')
+        ->distinct()
+        ->pluck('nombre')
+        ->toArray();
+
+    return view('cecoco.mapas.mapa_de_calor', compact('tipificaciones'));
+}
+```
+
+The heat map shows incident concentration by service type (theft, accidents, etc.).
+
+## Error Handling
+
+**CecocoController.php:137-139**
+```php
+catch (\Exception $e) {
+    return response()->json(['status' => 'error', 'message' => $e->getMessage()], 200);
+}
+```
+
+If data fetching fails, you'll receive an error message instead of map data.
+
+## Best Practices
+
+<CardGroup cols={2}>
+  <Card title="Refresh Intervals" icon="arrows-rotate">
+    Set appropriate auto-refresh intervals to balance real-time updates with server load
+  </Card>
+  
+  <Card title="Zoom Levels" icon="magnifying-glass">
+    Use appropriate zoom levels - too far out makes markers overlap, too close limits visibility
+  </Card>
+  
+  <Card title="Filter Data" icon="filter">
+    Apply filters to show only relevant units or incident types
+  </Card>
+  
+  <Card title="Performance" icon="gauge-high">
+    Limit the time window for historical data to maintain map performance
+  </Card>
+</CardGroup>
+
+## Related Features
+
+<Card title="Resource Tracking" icon="location-dot" href="/cecoco/resource-tracking">
+  Track individual mobile units and analyze their routes over time
+</Card>

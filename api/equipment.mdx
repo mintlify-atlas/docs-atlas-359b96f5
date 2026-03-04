@@ -1,0 +1,357 @@
+---
+title: Equipment API
+description: Manage TETRA radio equipment including terminals, accessories, and device tracking
+---
+
+## Overview
+
+The Equipment API allows you to manage TETRA radio equipment (terminals) including creating, retrieving, updating, and deleting equipment records. Each equipment has properties like TEI, ISSI, terminal type, state, warranty information, and more.
+
+## Endpoints
+
+### List Equipment
+
+Retrieve a paginated list of equipment with search capabilities.
+
+```http
+GET /equipos
+```
+
+<ParamField query="texto" type="string">
+  Search term to filter equipment by TEI, ISSI, provider, or owner
+</ParamField>
+
+<ParamField query="page" type="integer" default="1">
+  Page number for pagination (40 items per page)
+</ParamField>
+
+**Response**
+
+<ResponseField name="equipos" type="array">
+  Array of equipment objects
+  
+  <Expandable title="Equipment Object">
+    <ResponseField name="id" type="integer">
+      Unique equipment identifier
+    </ResponseField>
+    
+    <ResponseField name="tei" type="string" required>
+      TETRA Equipment Identity - unique device identifier
+    </ResponseField>
+    
+    <ResponseField name="issi" type="string">
+      Individual Short Subscriber Identity - radio ID
+    </ResponseField>
+    
+    <ResponseField name="nombre_issi" type="string">
+      Descriptive name for the ISSI
+    </ResponseField>
+    
+    <ResponseField name="tipo_terminal_id" type="integer">
+      Foreign key to terminal type (brand/model)
+    </ResponseField>
+    
+    <ResponseField name="estado_id" type="integer">
+      Foreign key to equipment state
+    </ResponseField>
+    
+    <ResponseField name="fecha_estado" type="datetime">
+      Date when the current state was set
+    </ResponseField>
+    
+    <ResponseField name="numero_bateria" type="string">
+      Primary battery serial number
+    </ResponseField>
+    
+    <ResponseField name="numero_segunda_bateria" type="string">
+      Secondary battery serial number
+    </ResponseField>
+    
+    <ResponseField name="provisto" type="string">
+      Equipment provider (PG, TELECOM, PER)
+    </ResponseField>
+    
+    <ResponseField name="propietario" type="string">
+      Equipment owner
+    </ResponseField>
+    
+    <ResponseField name="con_garantia" type="boolean">
+      Whether equipment is under warranty
+    </ResponseField>
+    
+    <ResponseField name="fecha_venc_garantia" type="date">
+      Warranty expiration date
+    </ResponseField>
+    
+    <ResponseField name="observaciones" type="string">
+      Additional notes or observations
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+**Example Request**
+
+```bash
+curl -X GET "https://your-domain.com/equipos?texto=1930013250" \
+  -H "Cookie: your-session-cookie"
+```
+
+### Create Equipment
+
+Create a new equipment record.
+
+```http
+POST /equipos
+```
+
+**Request Body**
+
+<ParamField body="terminal" type="integer" required>
+  Terminal type ID (references tipo_terminal table)
+</ParamField>
+
+<ParamField body="estados" type="string" required>
+  Equipment state name
+</ParamField>
+
+<ParamField body="tei" type="string" required>
+  TETRA Equipment Identity (must be unique)
+</ParamField>
+
+<ParamField body="issi" type="string">
+  Individual Short Subscriber Identity
+</ParamField>
+
+<ParamField body="nombre_issi" type="string">
+  Descriptive name for the ISSI
+</ParamField>
+
+<ParamField body="propietario" type="string">
+  Equipment owner
+</ParamField>
+
+<ParamField body="provisto" type="string">
+  Equipment provider
+</ParamField>
+
+<ParamField body="con_garantia" type="boolean">
+  Warranty status checkbox
+</ParamField>
+
+<ParamField body="fecha_venc_garantia" type="date">
+  Warranty expiration date
+</ParamField>
+
+<ParamField body="observaciones" type="text">
+  Additional observations
+</ParamField>
+
+**Example Request**
+
+```bash
+curl -X POST "https://your-domain.com/equipos" \
+  -H "Content-Type: application/x-www-form-urlencoded" \
+  -H "Cookie: your-session-cookie" \
+  -d "terminal=5" \
+  -d "estados=Funcional" \
+  -d "tei=1930013250" \
+  -d "issi=1990001" \
+  -d "provisto=PG" \
+  -d "con_garantia=1" \
+  -d "fecha_venc_garantia=2025-12-31"
+```
+
+**Response**
+
+Redirects to `/equipos` on success.
+
+**Error Responses**
+
+<ResponseField name="error" type="string">
+  "Ya se encuentra un equipo con el mismo TEI" - Equipment with this TEI already exists
+</ResponseField>
+
+### Show Equipment
+
+```http
+GET /equipos/{id}
+```
+
+<ParamField path="id" type="integer" required>
+  Equipment ID
+</ParamField>
+
+### Update Equipment
+
+Update an existing equipment record.
+
+```http
+PUT /equipos/{id}
+```
+
+<ParamField path="id" type="integer" required>
+  Equipment ID to update
+</ParamField>
+
+**Request Body**
+
+<ParamField body="tei" type="string" required>
+  TETRA Equipment Identity
+</ParamField>
+
+<ParamField body="estado" type="integer">
+  State ID
+</ParamField>
+
+<ParamField body="fecha_estado" type="datetime">
+  State change date
+</ParamField>
+
+<ParamField body="issi" type="string">
+  Individual Short Subscriber Identity
+</ParamField>
+
+<ParamField body="nombre_issi" type="string">
+  ISSI name
+</ParamField>
+
+<ParamField body="numero_bateria" type="string">
+  Primary battery number
+</ParamField>
+
+<ParamField body="numero_segunda_bateria" type="string">
+  Secondary battery number
+</ParamField>
+
+<ParamField body="provisto" type="string">
+  Provider
+</ParamField>
+
+<ParamField body="propietario" type="string">
+  Owner
+</ParamField>
+
+<ParamField body="con_garantia" type="boolean">
+  Warranty checkbox
+</ParamField>
+
+<ParamField body="fecha_venc_garantia" type="date">
+  Warranty expiration
+</ParamField>
+
+<ParamField body="observaciones" type="text">
+  Observations
+</ParamField>
+
+**Example Request**
+
+```bash
+curl -X PUT "https://your-domain.com/equipos/123" \
+  -H "Content-Type: application/x-www-form-urlencoded" \
+  -H "Cookie: your-session-cookie" \
+  -d "tei=1930013250" \
+  -d "estado=2" \
+  -d "numero_bateria=B001123"
+```
+
+### Delete Equipment
+
+Delete an equipment record and all related fleet and history records.
+
+```http
+DELETE /equipos/{id}
+```
+
+<ParamField path="id" type="integer" required>
+  Equipment ID to delete
+</ParamField>
+
+**Response**
+
+Redirects to `/equipos` with success message.
+
+**Error Response**
+
+<ResponseField name="error" type="string">
+  "Equipo no encontrado." - Equipment not found
+</ResponseField>
+
+## Additional Endpoints
+
+### View Equipment History
+
+View assignment history for a specific equipment.
+
+```http
+GET /ver-historico-desde-equipo/{id}
+```
+
+<ParamField path="id" type="integer" required>
+  Equipment ID
+</ParamField>
+
+**Response**
+
+Returns a view with historical assignment records including dates, destinations, resources, and movement types.
+
+### Export Equipment to Excel
+
+Export all equipment records to an Excel file.
+
+```http
+GET /export-equipos
+```
+
+**Response**
+
+Downloads an Excel file named `ListadoEquipos_{timestamp}.xlsx`.
+
+**Example Request**
+
+```bash
+curl -X GET "https://your-domain.com/export-equipos" \
+  -H "Cookie: your-session-cookie" \
+  -o equipos.xlsx
+```
+
+## Error Codes
+
+<ResponseField name="400" type="error">
+  Bad Request - Missing required fields or validation error
+</ResponseField>
+
+<ResponseField name="401" type="error">
+  Unauthorized - Authentication required
+</ResponseField>
+
+<ResponseField name="403" type="error">
+  Forbidden - Insufficient permissions (requires ver-equipo, crear-equipo, editar-equipo, or borrar-equipo)
+</ResponseField>
+
+<ResponseField name="404" type="error">
+  Not Found - Equipment not found
+</ResponseField>
+
+<ResponseField name="422" type="error">
+  Unprocessable Entity - Duplicate TEI or validation failure
+</ResponseField>
+
+## Models
+
+### Equipment Model
+
+The Equipment model (`App\Models\Equipo`) represents a TETRA radio terminal.
+
+**Relationships**
+
+- `tipo_terminal` - BelongsTo TipoTerminal (brand, model, type)
+- `estado` - BelongsTo Estado (operational state)
+- `flota_general` - HasMany FlotaGeneral (fleet assignments)
+- `historico` - HasMany Historico (assignment history)
+- `auditoria` - HasMany Auditoria (audit trail)
+
+**Source Code Reference**
+
+Controller: `app/Http/Controllers/EquipoController.php`
+
+Model: `app/Models/Equipo.php`

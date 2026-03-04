@@ -1,0 +1,209 @@
+---
+title: Authentication
+description: Learn how to implement and manage user authentication in C.A.R. 911, including login, logout, and password reset functionality.
+---
+
+C.A.R. 911 uses Laravel's built-in authentication system to secure access to the application. The authentication system handles user login, logout, registration, and password reset functionality.
+
+## Login System
+
+The login system is managed by the `LoginController` which uses Laravel's `AuthenticatesUsers` trait.
+
+### Login Controller
+
+The authentication controller is located at:
+```
+app/Http/Controllers/Auth/LoginController.php
+```
+
+<Note>
+The system uses the `guest` middleware to prevent authenticated users from accessing login pages. The exception is the logout route, which requires authentication.
+</Note>
+
+### Login Flow
+
+<Steps>
+  <Step title="Access Login Page">
+    Navigate to the root URL (`/`) which displays the login view:
+    
+    ```php
+    Route::get('/', function () {
+        return view('auth.login');
+    })->name('login.view');
+    ```
+  </Step>
+  
+  <Step title="Submit Credentials">
+    Enter your email and password. The system validates credentials using Laravel's authentication mechanism.
+  </Step>
+  
+  <Step title="Redirect After Login">
+    Upon successful authentication, users are redirected to the home page:
+    
+    ```php
+    protected $redirectTo = RouteServiceProvider::HOME;
+    ```
+    
+    Reference: app/Http/Controllers/Auth/LoginController.php:29
+  </Step>
+</Steps>
+
+### Middleware Protection
+
+The LoginController applies middleware to control access:
+
+```php
+public function __construct()
+{
+    $this->middleware('guest')->except('logout');
+}
+```
+
+Reference: app/Http/Controllers/Auth/LoginController.php:36-39
+
+## Logout Functionality
+
+The logout functionality is included in the `AuthenticatesUsers` trait. Users can log out by accessing the logout route, which is protected by authentication middleware.
+
+<Warning>
+After logging out, users are redirected to the login page and must re-authenticate to access protected resources.
+</Warning>
+
+## Password Reset
+
+C.A.R. 911 includes a complete password reset system for users who forget their credentials.
+
+### Forgot Password
+
+The `ForgotPasswordController` handles password reset email requests:
+
+```php
+use Illuminate\Foundation\Auth\SendsPasswordResetEmails;
+
+class ForgotPasswordController extends Controller
+{
+    use SendsPasswordResetEmails;
+}
+```
+
+Reference: app/Http/Controllers/Auth/ForgotPasswordController.php:8-22
+
+### Reset Password Flow
+
+<Steps>
+  <Step title="Request Reset Link">
+    Users request a password reset by providing their email address. The system sends a reset link via email.
+  </Step>
+  
+  <Step title="Click Reset Link">
+    Users click the link in the email, which contains a secure token.
+  </Step>
+  
+  <Step title="Set New Password">
+    Users enter and confirm their new password. The `ResetPasswordController` processes the request:
+    
+    ```php
+    use Illuminate\Foundation\Auth\ResetsPasswords;
+    
+    class ResetPasswordController extends Controller
+    {
+        use ResetsPasswords;
+        
+        protected $redirectTo = RouteServiceProvider::HOME;
+    }
+    ```
+    
+    Reference: app/Http/Controllers/Auth/ResetPasswordController.php:9-30
+  </Step>
+  
+  <Step title="Redirect to Home">
+    After successfully resetting the password, users are automatically logged in and redirected to the home page.
+  </Step>
+</Steps>
+
+## Authentication Routes
+
+Laravel's authentication routes are registered using:
+
+```php
+Auth::routes();
+```
+
+Reference: routes/web.php:50
+
+This automatically registers the following routes:
+- `GET|POST /login` - Login page and authentication
+- `POST /logout` - Logout functionality
+- `GET|POST /register` - User registration
+- `GET|POST /password/reset` - Password reset request
+- `GET|POST /password/email` - Send password reset email
+
+## Protected Routes
+
+All application routes are protected by the `auth` middleware:
+
+```php
+Route::group(['middleware' => ['auth']], function () {
+    // All protected routes
+});
+```
+
+Reference: routes/web.php:52
+
+<Note>
+Users must be authenticated to access any route within the middleware group. Unauthenticated users are automatically redirected to the login page.
+</Note>
+
+## User Model
+
+The User model extends Laravel's `Authenticatable` class and includes authentication-related traits:
+
+```php
+use Illuminate\Foundation\Auth\User as Authenticatable;
+use Illuminate\Notifications\Notifiable;
+use Laravel\Sanctum\HasApiTokens;
+
+class User extends Authenticatable
+{
+    use HasApiTokens, HasFactory, Notifiable, HasRoles;
+}
+```
+
+Reference: app/Models/User.php:14-16
+
+### Hidden Attributes
+
+For security, sensitive authentication data is hidden from JSON responses:
+
+```php
+protected $hidden = [
+    'password',
+    'remember_token',
+];
+```
+
+Reference: app/Models/User.php:39-42
+
+## System Optimization
+
+You can optimize the authentication system and clear caches:
+
+```php
+Route::get('optimizar', function () {
+    Artisan::call('optimize:clear');
+    Artisan::call('config:cache');
+    Artisan::call('route:cache');
+    Artisan::call('view:cache');
+    
+    Auth::logout();
+    
+    return redirect()->route('login.view')
+        ->with('status', '✅ Optimización completada correctamente');
+});
+```
+
+Reference: routes/web.php:357-367
+
+<Warning>
+Running the optimization route will log out all users and clear all application caches. Use this only during maintenance or deployment.
+</Warning>
