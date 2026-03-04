@@ -1,0 +1,123 @@
+{
+  "projectType": "saas",
+  "projectName": "C.A.R. 911",
+  "projectDescription": "Control and Administration of 911 Resources - A comprehensive police resource management system for tracking equipment, vehicles, cameras, and personnel.",
+  "theme": "linden",
+  "primaryColor": "#1e3a8a",
+  "lightColor": "#3b82f6",
+  "darkColor": "#1e40af",
+  "navigation": {
+    "tabs": [
+      {
+        "tab": "Documentation",
+        "groups": [
+          {
+            "group": "Get Started",
+            "pages": [
+              "introduction",
+              "installation",
+              "configuration"
+            ]
+          },
+          {
+            "group": "Core Features",
+            "pages": [
+              "features/dashboard",
+              "features/equipment-management",
+              "features/fleet-management",
+              "features/camera-management",
+              "features/bodycam-management",
+              "features/dependencies"
+            ]
+          },
+          {
+            "group": "User Management",
+            "pages": [
+              "users/authentication",
+              "users/roles-permissions",
+              "users/user-administration"
+            ]
+          },
+          {
+            "group": "Command Center",
+            "pages": [
+              "cecoco/overview",
+              "cecoco/live-map",
+              "cecoco/resource-tracking"
+            ]
+          },
+          {
+            "group": "Guides",
+            "pages": [
+              "guides/auditing",
+              "guides/reporting",
+              "guides/task-management",
+              "guides/advanced-search"
+            ]
+          }
+        ]
+      },
+      {
+        "tab": "API Reference",
+        "groups": [
+          {
+            "group": "Overview",
+            "pages": [
+              "api/overview",
+              "api/authentication"
+            ]
+          },
+          {
+            "group": "Resources",
+            "pages": [
+              "api/equipment",
+              "api/fleet",
+              "api/cameras",
+              "api/bodycams",
+              "api/dependencies",
+              "api/users"
+            ]
+          },
+          {
+            "group": "CECOCO APIs",
+            "pages": [
+              "api/cecoco-resources",
+              "api/cecoco-mobile-units"
+            ]
+          }
+        ]
+      }
+    ]
+  },
+  "keyFeatures": [
+    "Equipment inventory management with status tracking",
+    "Police fleet and vehicle administration",
+    "Camera and bodycam tracking system",
+    "Role-based access control with Spatie permissions",
+    "Real-time command center (CECOCO) with live mapping",
+    "Dependency hierarchy management (departments, divisions, stations)",
+    "Audit logging and historical tracking",
+    "Advanced search and filtering capabilities",
+    "Excel export functionality for reports",
+    "Task management with recurring task generation"
+  ],
+  "publicApiSurface": [
+    "POST /login - User authentication",
+    "POST /logout - User logout",
+    "GET /home - Main dashboard",
+    "Resource /equipos - Equipment CRUD operations",
+    "Resource /flota - Fleet management endpoints",
+    "Resource /camaras - Camera management",
+    "Resource /bodycams - Bodycam tracking",
+    "Resource /usuarios - User administration",
+    "Resource /roles - Role management",
+    "Resource /dependencias - Dependency hierarchy",
+    "GET /indexMapaCecocoEnVivo - Live CECOCO map",
+    "POST /get-moviles-json - Retrieve mobile units",
+    "POST /get-equipos-funcionales-json - Retrieve functional equipment",
+    "GET /export-equipos - Export equipment to Excel",
+    "GET /auditoria - Audit log access",
+    "Resource /tareas - Task management",
+    "GET /api/plano-edificio/devices - Building floor plan devices"
+  ]
+}
