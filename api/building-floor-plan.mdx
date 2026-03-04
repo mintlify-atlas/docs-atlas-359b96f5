@@ -1,0 +1,854 @@
+---
+title: Building Floor Plan
+description: Manage building devices with interactive floor plan positioning and secure credential storage
+---
+
+## Overview
+
+The Building Floor Plan API provides comprehensive device management for building infrastructure including PCs, servers, network equipment, and security cameras. Features include interactive positioning on floor plans, encrypted credential storage, and detailed device tracking.
+
+## Get All Devices
+
+Retrieve all devices for the interactive floor plan with optional filtering.
+
+```http
+GET /api/plano-edificio/devices
+```
+
+### Required Permissions
+
+- `ver-plano-edificio`
+
+### Query Parameters
+
+<ParamField query="tipos" type="array">
+  Filter by device types. Available types:
+  - `pc` - Personal Computer
+  - `puesto_cecoco` - CECOCO Workstation
+  - `puesto_video` - Video Workstation
+  - `router` - Router
+  - `switch` - Network Switch
+  - `camara_interna` - Internal Camera
+  - `servidor` - Server
+  - `servidor_cecoco` - CECOCO Server
+  - `servidor_nebula` - Nebula Server
+  - `grabador_nebula` - Nebula Recorder
+  - `nvr` - Network Video Recorder
+  - `access_point` - Wireless Access Point
+</ParamField>
+
+<ParamField query="oficina" type="string">
+  Filter by office name (partial match supported)
+</ParamField>
+
+<ParamField query="piso" type="string">
+  Filter by floor level
+</ParamField>
+
+<ParamField query="activo" type="boolean">
+  Filter by active status ("true" or "false")
+</ParamField>
+
+### Response
+
+<ResponseField name="success" type="boolean">
+  Indicates if the request was successful
+</ResponseField>
+
+<ResponseField name="data" type="array">
+  Array of device objects
+</ResponseField>
+
+<ResponseField name="total" type="integer">
+  Total number of devices returned
+</ResponseField>
+
+### Device Object Fields
+
+<ResponseField name="id" type="integer">
+  Unique device identifier
+</ResponseField>
+
+<ResponseField name="tipo" type="string">
+  Device type code (e.g., "pc", "router", "servidor")
+</ResponseField>
+
+<ResponseField name="nombre" type="string">
+  Device name
+</ResponseField>
+
+<ResponseField name="ip" type="string">
+  IP address
+</ResponseField>
+
+<ResponseField name="mac" type="string">
+  MAC address
+</ResponseField>
+
+<ResponseField name="marca" type="string">
+  Device brand/manufacturer
+</ResponseField>
+
+<ResponseField name="modelo" type="string">
+  Device model
+</ResponseField>
+
+<ResponseField name="serie" type="string">
+  Serial number
+</ResponseField>
+
+<ResponseField name="oficina" type="string">
+  Office location
+</ResponseField>
+
+<ResponseField name="piso" type="string">
+  Floor level
+</ResponseField>
+
+<ResponseField name="posicion_x" type="decimal">
+  X coordinate on floor plan (0-100, percentage-based)
+</ResponseField>
+
+<ResponseField name="posicion_y" type="decimal">
+  Y coordinate on floor plan (0-100, percentage-based)
+</ResponseField>
+
+<ResponseField name="sistema_operativo" type="string">
+  Operating system (required for PCs and servers)
+</ResponseField>
+
+<ResponseField name="puertos" type="integer">
+  Number of ports (required for routers, switches, access points)
+</ResponseField>
+
+<ResponseField name="observaciones" type="text">
+  Additional notes
+</ResponseField>
+
+<ResponseField name="activo" type="boolean">
+  Device active status
+</ResponseField>
+
+<ResponseField name="tiene_credenciales" type="boolean">
+  Indicates if device has stored credentials
+</ResponseField>
+
+<ResponseField name="icono" type="string">
+  FontAwesome icon class for the device type
+</ResponseField>
+
+<ResponseField name="color" type="string">
+  Hex color code for the device type
+</ResponseField>
+
+<ResponseField name="tipo_label" type="string">
+  Human-readable device type label
+</ResponseField>
+
+<ResponseField name="created_at" type="string">
+  Creation timestamp (format: d/m/Y H:i)
+</ResponseField>
+
+<ResponseField name="updated_at" type="string">
+  Last update timestamp (format: d/m/Y H:i)
+</ResponseField>
+
+### Example Request
+
+<CodeGroup>
+
+```bash cURL
+curl -X GET "https://your-domain.com/api/plano-edificio/devices?tipos[]=servidor&tipos[]=router&activo=true" \
+  -H "Cookie: your-session-cookie"
+```
+
+```javascript JavaScript
+const response = await fetch('/api/plano-edificio/devices?tipos[]=servidor&oficina=CECOCO&activo=true');
+const data = await response.json();
+```
+
+</CodeGroup>
+
+### Example Response
+
+```json
+{
+  "success": true,
+  "data": [
+    {
+      "id": 1,
+      "tipo": "servidor",
+      "nombre": "SRV-CECOCO-01",
+      "ip": "192.168.1.10",
+      "mac": "00:1A:2B:3C:4D:5E",
+      "marca": "Dell",
+      "modelo": "PowerEdge R740",
+      "serie": "ABC123456",
+      "oficina": "CECOCO Principal",
+      "piso": "2",
+      "posicion_x": 45.5000,
+      "posicion_y": 30.2500,
+      "sistema_operativo": "Windows Server 2019",
+      "puertos": null,
+      "observaciones": "Servidor principal de aplicaciones",
+      "activo": true,
+      "tiene_credenciales": true,
+      "icono": "fas fa-server",
+      "color": "#6f42c1",
+      "tipo_label": "Servidor",
+      "created_at": "04/03/2026 10:30",
+      "updated_at": "04/03/2026 14:15"
+    }
+  ],
+  "total": 1
+}
+```
+
+## Get Single Device
+
+Retrieve detailed information for a specific device.
+
+```http
+GET /api/plano-edificio/devices/{id}
+```
+
+### Required Permissions
+
+- `ver-plano-edificio`
+- `credenciales-plano-edificio` (optional, for viewing credentials)
+
+### Path Parameters
+
+<ParamField path="id" type="integer" required>
+  The device ID
+</ParamField>
+
+### Response
+
+Same as device object in Get All Devices, with additional fields:
+
+<ResponseField name="username" type="string">
+  Device username (only visible with `credenciales-plano-edificio` permission)
+</ResponseField>
+
+<ResponseField name="password" type="string">
+  Device password - automatically decrypted (only visible with `credenciales-plano-edificio` permission)
+</ResponseField>
+
+<ResponseField name="created_by" type="string">
+  Name of user who created the device
+</ResponseField>
+
+<ResponseField name="updated_by" type="string">
+  Name of user who last updated the device
+</ResponseField>
+
+### Example Request
+
+<CodeGroup>
+
+```bash cURL
+curl -X GET "https://your-domain.com/api/plano-edificio/devices/1" \
+  -H "Cookie: your-session-cookie"
+```
+
+```javascript JavaScript
+const response = await fetch('/api/plano-edificio/devices/1');
+const data = await response.json();
+```
+
+</CodeGroup>
+
+## Create Device
+
+Create a new device in the building floor plan.
+
+```http
+POST /api/plano-edificio/devices
+```
+
+### Required Permissions
+
+- `crear-plano-edificio`
+- `credenciales-plano-edificio` (optional, for storing credentials)
+
+### Request Body
+
+<ParamField body="tipo" type="string" required>
+  Device type. Must be one of: `pc`, `puesto_cecoco`, `puesto_video`, `router`, `switch`, `camara_interna`, `servidor`, `servidor_cecoco`, `servidor_nebula`, `grabador_nebula`, `nvr`, `access_point`
+</ParamField>
+
+<ParamField body="nombre" type="string" required>
+  Device name (max 200 characters)
+</ParamField>
+
+<ParamField body="ip" type="string">
+  Valid IP address
+</ParamField>
+
+<ParamField body="mac" type="string">
+  MAC address in format: XX:XX:XX:XX:XX:XX or XX-XX-XX-XX-XX-XX
+</ParamField>
+
+<ParamField body="marca" type="string">
+  Brand/manufacturer (max 100 characters)
+</ParamField>
+
+<ParamField body="modelo" type="string">
+  Model name (max 100 characters)
+</ParamField>
+
+<ParamField body="serie" type="string">
+  Serial number (max 100 characters)
+</ParamField>
+
+<ParamField body="oficina" type="string" required>
+  Office location (max 200 characters)
+</ParamField>
+
+<ParamField body="piso" type="string">
+  Floor level (max 50 characters)
+</ParamField>
+
+<ParamField body="posicion_x" type="decimal">
+  X coordinate on floor plan (0-100)
+</ParamField>
+
+<ParamField body="posicion_y" type="decimal">
+  Y coordinate on floor plan (0-100)
+</ParamField>
+
+<ParamField body="sistema_operativo" type="string">
+  Operating system (max 100 characters). **Required** for types: `pc`, `servidor`, `servidor_cecoco`, `servidor_nebula`
+</ParamField>
+
+<ParamField body="puertos" type="integer">
+  Number of ports (1-48). **Required** for types: `router`, `switch`, `access_point`
+</ParamField>
+
+<ParamField body="username" type="string">
+  Device access username (max 255 characters). Requires `credenciales-plano-edificio` permission.
+</ParamField>
+
+<ParamField body="password" type="string">
+  Device access password (max 2048 characters). **Automatically encrypted** before storage. Requires `credenciales-plano-edificio` permission.
+</ParamField>
+
+<ParamField body="observaciones" type="text">
+  Additional notes (max 1000 characters)
+</ParamField>
+
+<ParamField body="activo" type="boolean" default="true">
+  Device active status
+</ParamField>
+
+### Example Request
+
+<CodeGroup>
+
+```bash cURL
+curl -X POST "https://your-domain.com/api/plano-edificio/devices" \
+  -H "Content-Type: application/json" \
+  -H "Cookie: your-session-cookie" \
+  -d '{
+    "tipo": "servidor",
+    "nombre": "SRV-CECOCO-02",
+    "ip": "192.168.1.11",
+    "mac": "00:1A:2B:3C:4D:5F",
+    "marca": "HP",
+    "modelo": "ProLiant DL380",
+    "serie": "DEF789012",
+    "oficina": "CECOCO Principal",
+    "piso": "2",
+    "posicion_x": 50.0,
+    "posicion_y": 35.5,
+    "sistema_operativo": "Windows Server 2022",
+    "username": "admin",
+    "password": "SecurePass123!",
+    "observaciones": "Servidor de respaldo",
+    "activo": true
+  }'
+```
+
+```javascript JavaScript
+const response = await fetch('/api/plano-edificio/devices', {
+  method: 'POST',
+  headers: {
+    'Content-Type': 'application/json',
+  },
+  body: JSON.stringify({
+    tipo: 'router',
+    nombre: 'RTR-PISO3-01',
+    ip: '192.168.3.1',
+    mac: '00:1B:2C:3D:4E:5F',
+    marca: 'Cisco',
+    modelo: 'ISR 4331',
+    oficina: 'Sala de Equipos Piso 3',
+    piso: '3',
+    puertos: 24,
+    activo: true
+  })
+});
+```
+
+</CodeGroup>
+
+### Response
+
+```json
+{
+  "success": true,
+  "message": "Dispositivo creado correctamente",
+  "data": {
+    "id": 2,
+    "tipo": "servidor",
+    "nombre": "SRV-CECOCO-02",
+    // ... other fields
+  }
+}
+```
+
+<Note>
+  Passwords are automatically encrypted using Laravel's `Crypt::encryptString()` before storage. You cannot retrieve the plain text password later without the `credenciales-plano-edificio` permission.
+</Note>
+
+## Update Device
+
+Update an existing device.
+
+```http
+PUT /api/plano-edificio/devices/{id}
+```
+
+### Required Permissions
+
+- `editar-plano-edificio`
+- `credenciales-plano-edificio` (optional, for updating credentials)
+
+### Path Parameters
+
+<ParamField path="id" type="integer" required>
+  The device ID to update
+</ParamField>
+
+### Request Body
+
+Same parameters as Create Device. All fields can be updated.
+
+### Example Request
+
+<CodeGroup>
+
+```bash cURL
+curl -X PUT "https://your-domain.com/api/plano-edificio/devices/1" \
+  -H "Content-Type: application/json" \
+  -H "Cookie: your-session-cookie" \
+  -d '{
+    "tipo": "servidor",
+    "nombre": "SRV-CECOCO-01-Updated",
+    "ip": "192.168.1.10",
+    "sistema_operativo": "Windows Server 2022",
+    "activo": true
+  }'
+```
+
+```javascript JavaScript
+const response = await fetch('/api/plano-edificio/devices/1', {
+  method: 'PUT',
+  headers: { 'Content-Type': 'application/json' },
+  body: JSON.stringify({
+    nombre: 'SRV-CECOCO-01-Updated',
+    observaciones: 'Actualizado tras mantenimiento'
+  })
+});
+```
+
+</CodeGroup>
+
+### Response
+
+```json
+{
+  "success": true,
+  "message": "Dispositivo actualizado correctamente",
+  "data": {
+    // updated device object
+  }
+}
+```
+
+## Update Device Position
+
+Update only the position coordinates of a device on the floor plan.
+
+```http
+PUT /api/plano-edificio/devices/{id}/position
+```
+
+### Required Permissions
+
+- `posicionar-plano-edificio`
+
+### Path Parameters
+
+<ParamField path="id" type="integer" required>
+  The device ID
+</ParamField>
+
+### Request Body
+
+<ParamField body="posicion_x" type="decimal" required>
+  X coordinate (0-100)
+</ParamField>
+
+<ParamField body="posicion_y" type="decimal" required>
+  Y coordinate (0-100)
+</ParamField>
+
+### Example Request
+
+<CodeGroup>
+
+```bash cURL
+curl -X PUT "https://your-domain.com/api/plano-edificio/devices/1/position" \
+  -H "Content-Type: application/json" \
+  -H "Cookie: your-session-cookie" \
+  -d '{
+    "posicion_x": 55.25,
+    "posicion_y": 42.80
+  }'
+```
+
+```javascript JavaScript
+// Drag and drop example
+function updateDevicePosition(deviceId, x, y) {
+  fetch(`/api/plano-edificio/devices/${deviceId}/position`, {
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      posicion_x: x,
+      posicion_y: y
+    })
+  });
+}
+```
+
+</CodeGroup>
+
+### Response
+
+```json
+{
+  "success": true,
+  "message": "Posición actualizada correctamente",
+  "data": {
+    // device object with updated position
+  }
+}
+```
+
+<Note>
+  This endpoint is optimized for interactive drag-and-drop functionality. It only updates the position fields and the `updated_by` timestamp, making it faster than a full device update.
+</Note>
+
+## Delete Device
+
+Delete a device from the system.
+
+```http
+DELETE /api/plano-edificio/devices/{id}
+```
+
+### Required Permissions
+
+- `borrar-plano-edificio`
+
+### Path Parameters
+
+<ParamField path="id" type="integer" required>
+  The device ID to delete
+</ParamField>
+
+### Response
+
+```json
+{
+  "success": true,
+  "message": "Dispositivo eliminado correctamente"
+}
+```
+
+### Example Request
+
+<CodeGroup>
+
+```bash cURL
+curl -X DELETE "https://your-domain.com/api/plano-edificio/devices/1" \
+  -H "Cookie: your-session-cookie"
+```
+
+```javascript JavaScript
+const response = await fetch('/api/plano-edificio/devices/1', {
+  method: 'DELETE'
+});
+```
+
+</CodeGroup>
+
+<Note>
+  Devices use soft deletes, so they are not permanently removed from the database. They can be restored if needed.
+</Note>
+
+## Get Device Credentials
+
+Retrieve the stored credentials for a device.
+
+```http
+GET /api/plano-edificio/devices/{id}/credentials
+```
+
+### Required Permissions
+
+- `credenciales-plano-edificio`
+
+### Path Parameters
+
+<ParamField path="id" type="integer" required>
+  The device ID
+</ParamField>
+
+### Response
+
+<ResponseField name="success" type="boolean">
+  Indicates if credentials were retrieved
+</ResponseField>
+
+<ResponseField name="data" type="object">
+  Object containing username and decrypted password
+</ResponseField>
+
+### Example Request
+
+<CodeGroup>
+
+```bash cURL
+curl -X GET "https://your-domain.com/api/plano-edificio/devices/1/credentials" \
+  -H "Cookie: your-session-cookie"
+```
+
+```javascript JavaScript
+const response = await fetch('/api/plano-edificio/devices/1/credentials');
+const { data } = await response.json();
+console.log('Username:', data.username);
+console.log('Password:', data.password);
+```
+
+</CodeGroup>
+
+### Success Response
+
+```json
+{
+  "success": true,
+  "data": {
+    "username": "admin",
+    "password": "SecurePass123!"
+  }
+}
+```
+
+### Error Response (No Credentials)
+
+```json
+{
+  "success": false,
+  "message": "El dispositivo no tiene credenciales almacenadas"
+}
+```
+
+<Note>
+  This endpoint automatically decrypts stored passwords using Laravel's `Crypt::decryptString()`. Access is restricted to users with the `credenciales-plano-edificio` permission.
+</Note>
+
+## Export Devices to Excel
+
+Export devices to an Excel file with optional filtering.
+
+```http
+GET /api/plano-edificio/export
+```
+
+### Required Permissions
+
+- `exportar-plano-edificio`
+
+### Query Parameters
+
+<ParamField query="tipos" type="array">
+  Filter by device types
+</ParamField>
+
+<ParamField query="oficina" type="string">
+  Filter by office
+</ParamField>
+
+<ParamField query="piso" type="string">
+  Filter by floor
+</ParamField>
+
+<ParamField query="activo" type="boolean">
+  Filter by active status
+</ParamField>
+
+### Response
+
+Downloads an Excel file named `DispositivosEdificio_{timestamp}.xlsx`.
+
+<Note>
+  Credentials are only included in the export if the user has the `credenciales-plano-edificio` permission. Otherwise, those columns will be empty.
+</Note>
+
+### Example Request
+
+<CodeGroup>
+
+```bash cURL
+curl -X GET "https://your-domain.com/api/plano-edificio/export?tipos[]=servidor&activo=true" \
+  -H "Cookie: your-session-cookie" \
+  -o devices_export.xlsx
+```
+
+```javascript JavaScript
+window.location.href = '/api/plano-edificio/export?tipos[]=servidor&tipos[]=router';
+```
+
+</CodeGroup>
+
+## Device Types Reference
+
+| Type | Label | Icon | Required Fields |
+|------|-------|------|----------------|
+| `pc` | PC | fas fa-desktop | sistema_operativo |
+| `puesto_cecoco` | Puesto CECOCO | fas fa-headset | - |
+| `puesto_video` | Puesto de Video | fas fa-video | - |
+| `router` | Router | fas fa-wifi | puertos |
+| `switch` | Switch | fas fa-network-wired | puertos |
+| `camara_interna` | Cámara Interna | fas fa-video | - |
+| `servidor` | Servidor | fas fa-server | sistema_operativo |
+| `servidor_cecoco` | Servidor CECOCO | fas fa-server | sistema_operativo |
+| `servidor_nebula` | Servidor Nebula | fas fa-cloud | sistema_operativo |
+| `grabador_nebula` | Grabador Nebula | fas fa-record-vinyl | - |
+| `nvr` | NVR | fas fa-hdd | - |
+| `access_point` | Access Point | fas fa-broadcast-tower | puertos |
+
+## Operating Systems
+
+Supported operating systems for PCs and servers:
+- Windows 10
+- Windows 11
+- Windows Server 2012 R2
+- Windows Server 2019
+- Windows Server 2022
+- Ubuntu 20.04
+- Ubuntu 22.04
+- CentOS 7
+- CentOS 8
+- Debian 10
+- Debian 11
+- Otro (Other)
+
+## Error Codes
+
+<ResponseField name="422" type="Validation Error">
+  Validation failed. Common errors:
+  - Invalid device type
+  - Missing required fields based on device type
+  - Invalid IP or MAC format
+  - Position coordinates out of range (0-100)
+  - Ports out of range (1-48)
+</ResponseField>
+
+<ResponseField name="403" type="Forbidden">
+  Missing required permission for the operation
+</ResponseField>
+
+<ResponseField name="404" type="Not Found">
+  Device not found or device has no credentials
+</ResponseField>
+
+<ResponseField name="500" type="Server Error">
+  Database transaction failed:
+  ```json
+  {
+    "success": false,
+    "message": "Error al crear dispositivo: {error details}"
+  }
+  ```
+</ResponseField>
+
+## Security Features
+
+### Password Encryption
+
+All device passwords are automatically encrypted before storage using Laravel's encryption:
+
+```php
+public function setPasswordAttribute($value)
+{
+    if ($value !== null && $value !== '') {
+        $this->attributes['password'] = Crypt::encryptString($value);
+    }
+}
+```
+
+### Permission-Based Access
+
+The API implements granular permissions:
+
+- `ver-plano-edificio` - View devices
+- `crear-plano-edificio` - Create devices
+- `editar-plano-edificio` - Update devices
+- `posicionar-plano-edificio` - Update device positions
+- `borrar-plano-edificio` - Delete devices
+- `credenciales-plano-edificio` - View/edit credentials
+- `exportar-plano-edificio` - Export to Excel
+
+### Audit Trail
+
+All devices track:
+- `created_by` - User who created the device
+- `updated_by` - User who last modified the device
+- `created_at` - Creation timestamp
+- `updated_at` - Last modification timestamp
+- Soft deletes for recovery
+
+## Interactive Floor Plan
+
+The floor plan uses a percentage-based coordinate system (0-100) for both X and Y axes:
+
+- `posicion_x`: Horizontal position (0 = left edge, 100 = right edge)
+- `posicion_y`: Vertical position (0 = top edge, 100 = bottom edge)
+
+This allows the floor plan to be responsive and scale to different screen sizes while maintaining relative device positions.
+
+### Example: Positioning Devices
+
+```javascript
+// Center of floor plan
+const centerDevice = {
+  posicion_x: 50.0,
+  posicion_y: 50.0
+};
+
+// Top-left corner
+const topLeftDevice = {
+  posicion_x: 10.0,
+  posicion_y: 10.0
+};
+
+// Bottom-right corner
+const bottomRightDevice = {
+  posicion_x: 90.0,
+  posicion_y: 90.0
+};
+```

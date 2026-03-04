@@ -39,7 +39,10 @@
               "features/fleet-management",
               "features/camera-management",
               "features/bodycam-management",
-              "features/dependencies"
+              "features/dependencies",
+              "features/equipment-deliveries",
+              "features/bodycam-deliveries",
+              "features/asset-management"
             ]
           },
           {
@@ -64,7 +67,9 @@
               "guides/auditing",
               "guides/reporting",
               "guides/task-management",
-              "guides/advanced-search"
+              "guides/advanced-search",
+              "guides/password-vault",
+              "guides/audio-transcription"
             ]
           }
         ]
@@ -87,7 +92,10 @@
               "api/cameras",
               "api/bodycams",
               "api/dependencies",
-              "api/users"
+              "api/users",
+              "api/sites",
+              "api/terminals",
+              "api/building-floor-plan"
             ]
           },
           {

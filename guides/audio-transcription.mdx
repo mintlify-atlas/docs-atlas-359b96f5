@@ -1,0 +1,438 @@
+---
+title: Audio Transcription
+description: Convert audio files to text using the AWS-powered audio transcription service
+---
+
+The Audio Transcription service provides automatic speech-to-text conversion for audio files, powered by AWS services through a serverless API.
+
+## Overview
+
+The transcription system allows you to:
+
+- **Upload audio files** - Support for MP3, WAV, M4A, and OGG formats
+- **Automatic transcription** - AWS-powered speech recognition
+- **View results** - Real-time access to transcription status and results
+- **Download transcripts** - Get completed transcriptions
+- **History** - Access previously transcribed files
+
+<Info>
+The service uses AWS Lambda, S3, and Transcribe services through an API Gateway endpoint. Files are uploaded to S3, processed asynchronously, and results are stored for retrieval.
+</Info>
+
+## Supported Audio Formats
+
+The system accepts the following audio file types:
+
+<CardGroup cols={4}>
+  <Card title="MP3" icon="file-audio">
+    MPEG audio layer 3
+  </Card>
+  
+  <Card title="WAV" icon="file-audio">
+    Waveform audio format
+  </Card>
+  
+  <Card title="M4A" icon="file-audio">
+    MPEG-4 audio
+  </Card>
+  
+  <Card title="OGG" icon="file-audio">
+    Ogg Vorbis audio
+  </Card>
+</CardGroup>
+
+<Warning>
+Maximum file size is 50 MB (51200 KB). Larger files must be compressed or split before upload.
+</Warning>
+
+## Transcription Workflow
+
+<Steps>
+  <Step title="Access transcription interface">
+    Navigate to the transcription section from the main menu
+  </Step>
+  
+  <Step title="Select audio file">
+    Choose a file from your computer (MP3, WAV, M4A, or OGG)
+  </Step>
+  
+  <Step title="Upload file">
+    The system:
+    1. Generates a pre-signed S3 upload URL
+    2. Uploads the file directly to AWS S3
+    3. Initiates the transcription job
+  </Step>
+  
+  <Step title="Monitor progress">
+    Check the status of your transcription:
+    - **Processing** - AWS is transcribing the audio
+    - **Completed** - Transcription is ready
+    - **Failed** - An error occurred
+  </Step>
+  
+  <Step title="View results">
+    Once complete, view or download the transcribed text
+  </Step>
+</Steps>
+
+## API Configuration
+
+The system connects to an AWS API Gateway endpoint:
+
+```php
+// AudioTranscriptionController.php:12-15
+public function __construct()
+{
+    $this->apiBaseUrl = env('TRANSCRIPTION_API_URL', 
+        'https://gvs9j8cd3a.execute-api.us-east-1.amazonaws.com/prod');
+}
+```
+
+Set the `TRANSCRIPTION_API_URL` in your `.env` file to configure the API endpoint.
+
+## Generating Upload URLs
+
+Before uploading, the system requests a pre-signed URL from AWS:
+
+```php
+// AudioTranscriptionController.php:28-75
+public function generateUploadUrl(Request $request)
+{
+    $request->validate([
+        'fileName' => 'required|string',
+        'contentType' => 'required|string'
+    ]);
+    
+    $url = $this->apiBaseUrl . '/generate-upload-url';
+    $data = json_encode([
+        'fileName' => $request->fileName,
+        'contentType' => $request->contentType
+    ]);
+    
+    $ch = curl_init($url);
+    curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+    curl_setopt($ch, CURLOPT_POST, true);
+    curl_setopt($ch, CURLOPT_POSTFIELDS, $data);
+    curl_setopt($ch, CURLOPT_HTTPHEADER, [
+        'Content-Type: application/json',
+        'Content-Length: ' . strlen($data)
+    ]);
+    curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, false);
+    
+    $response = curl_exec($ch);
+    $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+    curl_close($ch);
+    
+    $decodedResponse = json_decode($response, true);
+    return response()->json($decodedResponse, $httpCode);
+}
+```
+
+<Note>
+SSL verification is disabled for development environments. Enable verification in production by removing `CURLOPT_SSL_VERIFYPEER = false`.
+</Note>
+
+## Uploading Files
+
+Once a pre-signed URL is obtained, upload the file directly to S3:
+
+```php
+// AudioTranscriptionController.php:80-125
+public function uploadFile(Request $request)
+{
+    $request->validate([
+        'uploadUrl' => 'required|url',
+        'file' => 'required|file|mimes:mp3,wav,m4a,ogg|max:51200'
+    ]);
+    
+    $file = $request->file('file');
+    $uploadUrl = $request->uploadUrl;
+    $filePath = $file->getRealPath();
+    
+    $ch = curl_init($uploadUrl);
+    curl_setopt($ch, CURLOPT_PUT, true);
+    curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+    curl_setopt($ch, CURLOPT_INFILE, fopen($filePath, 'r'));
+    curl_setopt($ch, CURLOPT_INFILESIZE, filesize($filePath));
+    curl_setopt($ch, CURLOPT_HTTPHEADER, [
+        'Content-Type: ' . $file->getMimeType()
+    ]);
+    curl_setopt($ch, CURLOPT_TIMEOUT, 60);
+    
+    $response = curl_exec($ch);
+    $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+    curl_close($ch);
+    
+    if ($httpCode >= 200 && $httpCode < 300) {
+        return response()->json([
+            'success' => true, 
+            'message' => 'Archivo subido exitosamente'
+        ]);
+    } else {
+        throw new \Exception("Error al subir el archivo. Código HTTP: $httpCode");
+    }
+}
+```
+
+The upload uses HTTP PUT directly to the S3 pre-signed URL, ensuring secure and efficient file transfer.
+
+## Checking Transcription Results
+
+Query the transcription status and results:
+
+### Get All Results
+
+```php
+// AudioTranscriptionController.php:130-166
+public function getResults(Request $request)
+{
+    $query = $request->get('getAll') ? ['getAll' => 'true'] : [];
+    $url = $this->apiBaseUrl . '/results?' . http_build_query($query);
+    
+    $ch = curl_init($url);
+    curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+    curl_setopt($ch, CURLOPT_HTTPHEADER, [
+        'Content-Type: application/json'
+    ]);
+    curl_setopt($ch, CURLOPT_TIMEOUT, 30);
+    
+    $response = curl_exec($ch);
+    $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+    curl_close($ch);
+    
+    $decodedResponse = json_decode($response, true);
+    return response()->json($decodedResponse, $httpCode);
+}
+```
+
+### Get Specific File Results
+
+Search for transcription results by filename:
+
+```php
+// AudioTranscriptionController.php:171-213
+public function getResultsByFileName(Request $request)
+{
+    $request->validate([
+        'fileName' => 'required|string'
+    ]);
+    
+    $url = $this->apiBaseUrl . '/results?' . http_build_query([
+        'fileName' => $request->fileName
+    ]);
+    
+    $ch = curl_init($url);
+    curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+    curl_setopt($ch, CURLOPT_HTTPHEADER, [
+        'Content-Type: application/json'
+    ]);
+    curl_setopt($ch, CURLOPT_TIMEOUT, 30);
+    
+    $response = curl_exec($ch);
+    $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+    curl_close($ch);
+    
+    $decodedResponse = json_decode($response, true);
+    return response()->json($decodedResponse, $httpCode);
+}
+```
+
+## Viewing Transcription History
+
+Access the complete history of transcribed files:
+
+```php
+// AudioTranscriptionController.php:219-267
+public function getHistorial(Request $request)
+{
+    $url = $this->apiBaseUrl . '/results?' . http_build_query([
+        'getAll' => 'true'
+    ]);
+    
+    $ch = curl_init($url);
+    curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+    curl_setopt($ch, CURLOPT_HTTPHEADER, [
+        'Content-Type: application/json'
+    ]);
+    curl_setopt($ch, CURLOPT_TIMEOUT, 30);
+    
+    $response = curl_exec($ch);
+    $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+    curl_close($ch);
+    
+    $decodedResponse = json_decode($response, true);
+    
+    $historial = json_decode($response, true);
+    
+    // Sort by filename
+    if (is_array($historial)) {
+        usort($historial, function ($a, $b) {
+            $nombreA = $a['nombre_archivo'] ?? $a['archivo'] ?? $a['filename'] ?? '';
+            $nombreB = $b['nombre_archivo'] ?? $b['archivo'] ?? $b['filename'] ?? '';
+            return strcasecmp($nombreB, $nombreA);
+        });
+    }
+    
+    return response()->json($historial);
+}
+```
+
+The history includes:
+- File names
+- Upload timestamps
+- Transcription status
+- Completed transcriptions
+- Error messages (if any)
+
+## Routes
+
+The transcription system uses these routes:
+
+| Route | Method | Purpose |
+|-------|--------|---------|
+| `/transcription` | GET | Show transcription interface |
+| `/generate-upload-url` | POST | Get S3 pre-signed URL |
+| `/upload-file` | POST | Upload file to S3 |
+| `/get-results` | GET | Get all transcription results |
+| `/get-results-by-filename` | GET | Get results for specific file |
+| `/get-historial` | GET | Get complete transcription history |
+
+<Info>
+All routes require authentication via the `auth` middleware.
+</Info>
+
+## Error Handling
+
+The system handles various error scenarios:
+
+### cURL Errors
+
+```php
+if ($error) {
+    throw new \Exception("cURL Error: " . $error);
+}
+```
+
+### Invalid JSON Responses
+
+```php
+$decodedResponse = json_decode($response, true);
+if (!$decodedResponse) {
+    throw new \Exception("Invalid JSON response: " . $response);
+}
+```
+
+### HTTP Errors
+
+```php
+if ($httpCode >= 200 && $httpCode < 300) {
+    return response()->json(['success' => true]);
+} else {
+    throw new \Exception("Error al subir el archivo. Código HTTP: $httpCode");
+}
+```
+
+All errors are logged using Laravel's logging system:
+
+```php
+Log::error('Error obteniendo resultados: ' . $e->getMessage());
+return response()->json([
+    'error' => 'Error interno del servidor: ' . $e->getMessage()
+], 500);
+```
+
+## Frontend Integration
+
+The transcription interface uses AJAX to communicate with the backend:
+
+1. **Select file** - User chooses audio file
+2. **Request URL** - Call `/generate-upload-url` with filename and content type
+3. **Upload file** - POST file to pre-signed URL via `/upload-file`
+4. **Poll results** - Periodically call `/get-results-by-filename` to check status
+5. **Display transcript** - Show completed transcription when ready
+
+## AWS Architecture
+
+The backend uses a serverless architecture:
+
+<CardGroup cols={3}>
+  <Card title="API Gateway" icon="cloud">
+    REST API endpoint for requests
+  </Card>
+  
+  <Card title="Lambda Functions" icon="function">
+    Serverless processing logic
+  </Card>
+  
+  <Card title="S3 Bucket" icon="database">
+    Audio file storage
+  </Card>
+  
+  <Card title="AWS Transcribe" icon="microphone">
+    Speech-to-text engine
+  </Card>
+  
+  <Card title="DynamoDB" icon="table">
+    Results storage
+  </Card>
+</CardGroup>
+
+## Best Practices
+
+1. **File preparation** - Convert audio to supported formats before upload
+2. **File size** - Compress large files to stay under 50 MB limit
+3. **Audio quality** - Better audio quality produces better transcriptions
+4. **Check status** - Poll periodically but not too frequently (every 5-10 seconds)
+5. **Handle errors** - Implement retry logic for failed uploads
+6. **Timeout handling** - Set appropriate timeout values for large files
+7. **Progress feedback** - Show upload and processing progress to users
+8. **Result caching** - Cache transcription results to avoid repeated API calls
+
+## Troubleshooting
+
+### Upload Fails
+
+- Verify file format is supported
+- Check file size is under 50 MB
+- Ensure internet connection is stable
+- Verify API endpoint is accessible
+
+### Transcription Never Completes
+
+- Check AWS service status
+- Verify audio file is not corrupted
+- Ensure audio contains speech
+- Review CloudWatch logs for Lambda errors
+
+### Empty Results
+
+- Confirm file was successfully uploaded to S3
+- Check transcription job started correctly
+- Verify audio format is compatible with AWS Transcribe
+- Review error logs in the transcription results
+
+## Security Considerations
+
+<Warning>
+The transcription service:
+- Uses pre-signed URLs with limited validity
+- Requires authentication for all operations
+- Uploads files directly to S3 (not through application server)
+- Stores results in AWS with access controls
+</Warning>
+
+<Note>
+Enable SSL verification in production by removing or setting `CURLOPT_SSL_VERIFYPEER = true` in all cURL requests.
+</Note>
+
+## Related Features
+
+<CardGroup cols={2}>
+  <Card title="File Management" icon="folder">
+    Manage uploaded audio files
+  </Card>
+  
+  <Card title="AWS Integration" icon="aws">
+    Other AWS-powered features
+  </Card>
+</CardGroup>

@@ -1,0 +1,489 @@
+---
+title: Asset Management
+description: Track and manage physical assets with the patrimonio system for complete lifecycle management
+---
+
+The Asset Management (Patrimonio) system provides comprehensive tracking of physical assets owned by the organization, including equipment, devices, and infrastructure items.
+
+## Overview
+
+The patrimonio system manages the complete lifecycle of physical assets:
+
+- **Registration** - Record new assets with SIAF codes and serial numbers
+- **Location tracking** - Monitor current location and responsible department
+- **Movement history** - Complete audit trail of transfers and changes
+- **Status management** - Track active, inactive, and retired assets
+- **Asset types** - Flexible categorization with optional database linking
+- **Documentation** - Attach images and supporting files
+
+<Info>
+Assets can be linked to existing items in other tables (like equipment or cameras) or tracked independently.
+</Info>
+
+## Asset Types
+
+Before registering assets, you must define asset types:
+
+<Steps>
+  <Step title="Create asset type">
+    Navigate to Patrimonio → Tipos de Bien and define a new type
+  </Step>
+  
+  <Step title="Configure type properties">
+    - **Name** - Type description (e.g., "Radios", "Cameras", "Servers")
+    - **Has own table** - Whether this type links to an existing database table
+    - **Table reference** - The database table name if linked
+    - **Description** - Additional details about this asset type
+  </Step>
+</Steps>
+
+```php
+// PatrimonioTipoBienController.php:24-42
+$validated = $request->validate([
+    'nombre' => 'required|string|max:100|unique:patrimonio_tipos_bien,nombre',
+    'tiene_tabla_propia' => 'boolean',
+    'tabla_referencia' => 'nullable|string|max:100',
+    'descripcion' => 'nullable|string',
+]);
+
+PatrimonioTipoBien::create($validated);
+```
+
+### Linked Asset Types
+
+When an asset type has `tiene_tabla_propia = true`, the system can link assets to existing equipment records:
+
+<CardGroup cols={2}>
+  <Card title="Equipment Table" icon="walkie-talkie">
+    Link to radio equipment with TEI identifiers
+  </Card>
+  
+  <Card title="Camera Table" icon="camera">
+    Link to camera records by name
+  </Card>
+</CardGroup>
+
+<Warning>
+Once an item from a linked table is registered as an asset, it cannot be registered again to prevent duplicate tracking.
+</Warning>
+
+## Registering Assets
+
+<Steps>
+  <Step title="Navigate to asset creation">
+    Go to Patrimonio → Bienes → Create New Asset
+  </Step>
+  
+  <Step title="Select asset type">
+    Choose the type of asset being registered
+  </Step>
+  
+  <Step title="Link to existing item (if applicable)">
+    If the asset type has a linked table, select the specific item to patrimoniare
+  </Step>
+  
+  <Step title="Enter asset details">
+    Complete the required information:
+    - **SIAF code** - Financial system identifier (optional)
+    - **Description** - Detailed description of the asset
+    - **Serial number** - Manufacturer serial number
+    - **Registration date** - When the asset was acquired
+    - **Destination** - Current department location
+    - **Physical location** - Specific location within department
+    - **Observations** - Additional notes
+  </Step>
+  
+  <Step title="Attach documentation">
+    Upload up to 3 images and 1 additional file (invoices, specifications, etc.)
+  </Step>
+  
+  <Step title="Submit registration">
+    The system creates the asset record and logs the initial registration as an "alta" (activation) movement
+  </Step>
+</Steps>
+
+### Code Example: Asset Registration
+
+```php
+// PatrimonioBienController.php:70-177
+$validated = $request->validate([
+    'tipo_bien_id' => 'required|exists:patrimonio_tipos_bien,id',
+    'item_origen_id' => 'nullable|integer',
+    'destino_id' => 'nullable|exists:destino,id',
+    'ubicacion' => 'nullable|string|max:150',
+    'siaf' => 'nullable|string|max:100',
+    'descripcion' => 'required|string',
+    'numero_serie' => 'nullable|string|max:255',
+    'fecha_alta' => 'required|date'
+]);
+
+DB::beginTransaction();
+
+$tipoBien = PatrimonioTipoBien::findOrFail($validated['tipo_bien_id']);
+
+// Handle linked table items
+if ($tipoBien->tiene_tabla_propia && $tipoBien->tabla_referencia) {
+    // Verify item not already registered
+    $yaPatrimoniado = PatrimonioBien::where('tabla_origen', $tipoBien->tabla_referencia)
+        ->where('id_origen', $request->item_origen_id)
+        ->exists();
+    
+    if ($yaPatrimoniado) {
+        return back()->with('error', 'Este item ya fue patrimoniado anteriormente');
+    }
+    
+    // Get source item data
+    $itemOrigen = DB::table($tipoBien->tabla_referencia)
+        ->where('id', $request->item_origen_id)
+        ->first();
+    
+    $validated['tabla_origen'] = $tipoBien->tabla_referencia;
+    $validated['id_origen'] = $request->item_origen_id;
+}
+
+$validated['estado'] = 'activo';
+
+$bien = PatrimonioBien::create($validated);
+
+// Record initial registration movement
+$bien->registrarMovimiento(
+    'alta',
+    null,
+    null,
+    $request->destino_id,
+    $request->ubicacion,
+    'Alta inicial del bien patrimonial'
+);
+
+DB::commit();
+```
+
+## Viewing Asset Details
+
+The asset detail page displays comprehensive information:
+
+<CardGroup cols={2}>
+  <Card title="Basic Information" icon="info-circle">
+    Type, SIAF code, serial number, description
+  </Card>
+  
+  <Card title="Current Status" icon="location-dot">
+    Status, destination, physical location
+  </Card>
+  
+  <Card title="Source Link" icon="link">
+    Linked table and original item ID (if applicable)
+  </Card>
+  
+  <Card title="Movement History" icon="clock-rotate-left">
+    Complete timeline of transfers, activations, and deactivations
+  </Card>
+</CardGroup>
+
+```php
+// PatrimonioBienController.php:179-185
+$bien = PatrimonioBien::with([
+    'tipoBien', 
+    'destino', 
+    'movimientos.destinoDesde', 
+    'movimientos.destinoHasta'
+])->findOrFail($id);
+```
+
+## Asset Transfers
+
+Transfer assets between departments or locations while maintaining a complete audit trail.
+
+<Steps>
+  <Step title="Access transfer form">
+    From the asset detail page, click "Transfer Asset"
+  </Step>
+  
+  <Step title="Select destination">
+    Choose:
+    - **Destination department** (required)
+    - **Physical location** within department (optional)
+  </Step>
+  
+  <Step title="Add transfer details">
+    - Observations explaining the transfer reason
+    - Supporting documentation (images, transfer forms)
+  </Step>
+  
+  <Step title="Complete transfer">
+    The system records the movement and updates the asset location
+  </Step>
+</Steps>
+
+### Transfer Implementation
+
+```php
+// PatrimonioBienController.php:381-453
+$validated = $request->validate([
+    'destino_hasta_id' => 'required|exists:destino,id',
+    'ubicacion_hasta' => 'nullable|string|max:150',
+    'observaciones' => 'nullable|string'
+]);
+
+$bien = PatrimonioBien::findOrFail($id);
+$destinoDesde = $bien->destino_id;
+$ubicacionDesde = $bien->ubicacion;
+$destinoHasta = $validated['destino_hasta_id'];
+$ubicacionHasta = $validated['ubicacion_hasta'] ?? null;
+
+// Prevent no-change transfers
+if ($destinoDesde == $destinoHasta && $ubicacionDesde == $ubicacionHasta) {
+    return back()->with('error', 'El destino y la ubicación son iguales a los actuales');
+}
+
+// Update asset location
+$bien->update([
+    'destino_id' => $destinoHasta,
+    'ubicacion' => $ubicacionHasta
+]);
+
+// Record transfer movement
+$bien->registrarMovimiento(
+    'traslado',
+    $destinoDesde,
+    $ubicacionDesde,
+    $destinoHasta,
+    $ubicacionHasta,
+    $validated['observaciones']
+);
+```
+
+<Note>
+The system automatically detects location changes during asset edits and creates transfer movements when the destination or location is modified.
+</Note>
+
+## Asset Deactivation (Baja)
+
+Remove assets from active inventory through three types of deactivation:
+
+<CardGroup cols={3}>
+  <Card title="Decommission" icon="ban">
+    **baja_desuso** - Asset no longer in use
+  </Card>
+  
+  <Card title="Transfer Out" icon="arrow-right-arrow-left">
+    **baja_transferencia** - Asset transferred to another entity
+  </Card>
+  
+  <Card title="Damage" icon="triangle-exclamation">
+    **baja_rotura** - Asset damaged beyond repair
+  </Card>
+</CardGroup>
+
+### Deactivation Process
+
+<Steps>
+  <Step title="Initiate deactivation">
+    From asset detail, select "Dar de Baja" (Deactivate)
+  </Step>
+  
+  <Step title="Choose deactivation type">
+    Select the appropriate reason for deactivation
+  </Step>
+  
+  <Step title="Provide justification">
+    Enter detailed observations explaining why the asset is being deactivated
+  </Step>
+  
+  <Step title="Transfer destination (if applicable)">
+    For transfer deactivations, specify the receiving entity
+  </Step>
+  
+  <Step title="Attach documentation">
+    Upload supporting documents (damage reports, transfer forms, disposal records)
+  </Step>
+  
+  <Step title="Confirm deactivation">
+    The system updates the asset status to "baja" and records the movement
+  </Step>
+</Steps>
+
+```php
+// PatrimonioBienController.php:301-371
+$validated = $request->validate([
+    'tipo_baja' => 'required|in:baja_desuso,baja_transferencia,baja_rotura',
+    'observaciones' => 'required|string',
+    'destino_transferencia' => 'required_if:tipo_baja,baja_transferencia|nullable|exists:destino,id'
+]);
+
+$tipoBaja = $validated['tipo_baja'];
+
+$bien->estado = 'baja';
+$bien->observaciones = $request->observaciones;
+
+// Update destination for transfers
+if ($tipoBaja === 'baja_transferencia') {
+    $bien->destino_id = $request->destino_transferencia;
+}
+
+$bien->save();
+
+// Record deactivation movement
+$bien->registrarMovimiento(
+    $validated['tipo_baja'],
+    $bien->destino_id,
+    $bien->ubicacion,
+    $tipoBaja === 'baja_transferencia' ? $request->destino_transferencia : null,
+    null,
+    $request->observaciones
+);
+```
+
+## Searching and Filtering
+
+Find assets using multiple search criteria:
+
+| Filter | Description |
+|--------|-------------|
+| **Tipo de Bien** | Filter by asset type |
+| **Destino** | Filter by current department |
+| **Ubicación** | Search physical location |
+| **Estado** | Filter by status (active/inactive) |
+| **SIAF** | Search by financial code |
+| **Número de Serie** | Find by serial number |
+| **Búsqueda general** | Search across all text fields |
+
+```php
+// PatrimonioBienController.php:16-59
+$query = PatrimonioBien::with(['tipoBien', 'destino', 'ultimoMovimiento']);
+
+if ($request->filled('tipo_bien_id')) {
+    $query->where('tipo_bien_id', $request->tipo_bien_id);
+}
+
+if ($request->filled('destino_id')) {
+    $query->where('destino_id', $request->destino_id);
+}
+
+if ($request->filled('estado')) {
+    $query->where('estado', $request->estado);
+}
+
+if ($request->filled('busqueda')) {
+    $busqueda = $request->busqueda;
+    $query->where(function ($q) use ($busqueda) {
+        $q->where('siaf', 'like', '%' . $busqueda . '%')
+            ->orWhere('numero_serie', 'like', '%' . $busqueda . '%')
+            ->orWhere('descripcion', 'like', '%' . $busqueda . '%')
+            ->orWhere('ubicacion', 'like', '%' . $busqueda . '%');
+    });
+}
+
+$bienes = $query->orderBy('created_at', 'desc')->paginate(15);
+```
+
+## Getting Available Items for Registration
+
+When registering assets linked to existing tables, the system dynamically loads available items:
+
+```php
+// PatrimonioBienController.php:461-524
+public function getItemsDisponibles(Request $request)
+{
+    $tipoId = $request->tipo_bien_id;
+    $tipoBien = PatrimonioTipoBien::find($tipoId);
+    
+    if (!$tipoBien || !$tipoBien->tiene_tabla_propia) {
+        return response()->json([]);
+    }
+    
+    $config = [
+        'equipos' => [
+            'prefix' => '- TEI: - ',
+            'column' => 'tei'
+        ],
+        'camaras' => [
+            'prefix' => ' - ',
+            'column' => 'nombre'
+        ]
+    ];
+    
+    $tabla = $tipoBien->tabla_referencia;
+    $prefix = $config[$tabla]['prefix'] ?? '';
+    $col = $config[$tabla]['column'] ?? 'id';
+    
+    // Query items not already registered
+    $items = DB::table($tabla)
+        ->selectRaw("id, CONCAT(?, COALESCE($col, '')) AS text", [$prefix])
+        ->whereNotIn('id', function ($query) use ($tabla) {
+            $query->select('id_origen')
+                ->from('patrimonio_bienes')
+                ->where('tabla_origen', $tabla)
+                ->whereNull('deleted_at');
+        })
+        ->orderBy('id')
+        ->get();
+    
+    return response()->json($items);
+}
+```
+
+## Movement History
+
+Every asset maintains a complete audit trail of all changes:
+
+- **alta** - Initial registration
+- **traslado** - Transfer between locations
+- **baja_desuso** - Decommissioned
+- **baja_transferencia** - Transferred to external entity
+- **baja_rotura** - Damaged/broken
+
+Each movement records:
+- Type of movement
+- Source destination and location
+- Target destination and location
+- Date and time
+- User who performed the action
+- Observations
+
+## Routes
+
+The asset management system uses these routes:
+
+| Route | Method | Purpose |
+|-------|--------|---------|
+| `/patrimonio/bienes` | GET | List all assets |
+| `/patrimonio/bienes/create` | GET | Asset registration form |
+| `/patrimonio/bienes` | POST | Store new asset |
+| `/patrimonio/bienes/{id}` | GET | View asset details |
+| `/patrimonio/bienes/{id}/edit` | GET | Edit asset |
+| `/patrimonio/bienes/{id}` | PUT/PATCH | Update asset |
+| `/patrimonio/bienes/{id}` | DELETE | Delete asset |
+| `/patrimonio/bienes/{id}/baja` | GET | Deactivation form |
+| `/patrimonio/bienes/{id}/baja` | POST | Process deactivation |
+| `/patrimonio/bienes/{id}/traslado` | GET | Transfer form |
+| `/patrimonio/bienes/{id}/traslado` | POST | Process transfer |
+| `/patrimonio/bienes/items-disponibles` | GET | Get available items for type |
+| `/patrimonio/tipos-bien` | * | Asset type management |
+
+## Best Practices
+
+1. **Use SIAF codes** - Always include financial system codes when available
+2. **Document everything** - Upload photos and supporting documents for all actions
+3. **Accurate descriptions** - Write clear, detailed descriptions for future identification
+4. **Record serial numbers** - Always capture manufacturer serial numbers
+5. **Update locations promptly** - Keep physical location information current
+6. **Justify deactivations** - Provide thorough explanations for asset retirement
+7. **Regular audits** - Periodically verify physical assets match system records
+8. **Link when possible** - Use table linking for equipment already in other systems
+
+## Related Features
+
+<CardGroup cols={3}>
+  <Card title="Equipment Deliveries" icon="walkie-talkie" href="/features/equipment-deliveries">
+    Track temporary equipment assignments
+  </Card>
+  
+  <Card title="Fleet Management" icon="car">
+    Manage mobile equipment and vehicles
+  </Card>
+  
+  <Card title="Camera Management" icon="camera">
+    Track surveillance camera infrastructure
+  </Card>
+</CardGroup>

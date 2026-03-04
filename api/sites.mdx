@@ -1,0 +1,396 @@
+---
+title: Sites (Sitios)
+description: Manage camera site locations with CRUD operations and Excel export functionality
+---
+
+## Overview
+
+The Sites API allows you to manage camera installation locations (sitios) across different localities. You can create, read, update, and delete site records, as well as export site data to Excel format.
+
+## List Sites
+
+Retrieve a paginated list of camera sites with search and filtering capabilities.
+
+```http
+GET /sitios
+```
+
+### Query Parameters
+
+<ParamField query="texto" type="string">
+  Search text to filter sites by name, locality, or associated dependency (destino). The search is case-insensitive and uses partial matching.
+</ParamField>
+
+### Response
+
+Returns a paginated list of sites (100 per page) ordered by ID.
+
+<ResponseField name="id" type="integer">
+  Unique identifier for the site
+</ResponseField>
+
+<ResponseField name="nombre" type="string" required>
+  Name of the camera site location
+</ResponseField>
+
+<ResponseField name="latitud" type="decimal">
+  Latitude coordinate for the site location
+</ResponseField>
+
+<ResponseField name="longitud" type="decimal">
+  Longitude coordinate for the site location
+</ResponseField>
+
+<ResponseField name="localidad" type="string" required>
+  Locality where the site is located. Valid options:
+  - Paraná
+  - Colonia Avellaneda
+  - Oro Verde
+  - San Benito
+</ResponseField>
+
+<ResponseField name="cartel" type="boolean">
+  Indicates whether the site has signage (SI/NO converted to true/false)
+</ResponseField>
+
+<ResponseField name="activo" type="boolean" required>
+  Indicates whether the site is active
+</ResponseField>
+
+<ResponseField name="destino_id" type="integer" required>
+  Foreign key reference to the associated dependency (Destino)
+</ResponseField>
+
+<ResponseField name="observaciones" type="text">
+  Additional notes or observations about the site
+</ResponseField>
+
+<ResponseField name="destino" type="object">
+  Associated dependency object with its details
+</ResponseField>
+
+### Example Request
+
+<CodeGroup>
+
+```bash cURL
+curl -X GET "https://your-domain.com/sitios?texto=Paraná" \
+  -H "Cookie: your-session-cookie"
+```
+
+```php PHP
+$response = Http::get('https://your-domain.com/sitios', [
+    'texto' => 'Paraná'
+]);
+```
+
+</CodeGroup>
+
+## Create Site
+
+Create a new camera site location.
+
+```http
+POST /sitios
+```
+
+### Required Permissions
+
+- `crear-sitio`
+
+### Request Body
+
+<ParamField body="nombre" type="string" required>
+  Name of the camera site location
+</ParamField>
+
+<ParamField body="localidad" type="string" required>
+  Locality for the site. Must be one of:
+  - Paraná
+  - Colonia Avellaneda
+  - Oro Verde
+  - San Benito
+</ParamField>
+
+<ParamField body="destino_id" type="integer" required>
+  ID of the associated dependency (must exist in destinos table)
+</ParamField>
+
+<ParamField body="activo" type="boolean" required>
+  Whether the site is active (true/false or 1/0)
+</ParamField>
+
+<ParamField body="latitud" type="decimal">
+  Latitude coordinate for the site location
+</ParamField>
+
+<ParamField body="longitud" type="decimal">
+  Longitude coordinate for the site location
+</ParamField>
+
+<ParamField body="cartel" type="string">
+  Whether the site has signage. Valid values: "SI" or "NO" (converted to boolean)
+</ParamField>
+
+<ParamField body="observaciones" type="text">
+  Additional notes or observations about the site
+</ParamField>
+
+### Example Request
+
+<CodeGroup>
+
+```bash cURL
+curl -X POST "https://your-domain.com/sitios" \
+  -H "Content-Type: application/json" \
+  -H "Cookie: your-session-cookie" \
+  -d '{
+    "nombre": "Sitio Plaza 1° de Mayo",
+    "localidad": "Paraná",
+    "latitud": "-31.7413",
+    "longitud": "-60.5115",
+    "cartel": "SI",
+    "activo": true,
+    "destino_id": 1,
+    "observaciones": "Cámara ubicada en poste frente a la plaza"
+  }'
+```
+
+```php PHP
+$response = Http::post('https://your-domain.com/sitios', [
+    'nombre' => 'Sitio Plaza 1° de Mayo',
+    'localidad' => 'Paraná',
+    'latitud' => '-31.7413',
+    'longitud' => '-60.5115',
+    'cartel' => 'SI',
+    'activo' => true,
+    'destino_id' => 1,
+    'observaciones' => 'Cámara ubicada en poste frente a la plaza'
+]);
+```
+
+</CodeGroup>
+
+### Response
+
+On success, redirects to `/sitios` (index page).
+
+### Error Responses
+
+<ResponseField name="result" type="string">
+  "ERROR" if the operation fails
+</ResponseField>
+
+<ResponseField name="message" type="string">
+  Detailed error message describing what went wrong
+</ResponseField>
+
+## Edit Site
+
+Retrieve site details for editing.
+
+```http
+GET /sitios/{id}/edit
+```
+
+### Required Permissions
+
+- `editar-sitio`
+
+### Path Parameters
+
+<ParamField path="id" type="integer" required>
+  The ID of the site to edit
+</ParamField>
+
+## Update Site
+
+Update an existing camera site location.
+
+```http
+PUT /sitios/{id}
+```
+
+### Required Permissions
+
+- `editar-sitio`
+
+### Path Parameters
+
+<ParamField path="id" type="integer" required>
+  The ID of the site to update
+</ParamField>
+
+### Request Body
+
+Same parameters as Create Site (all fields can be updated).
+
+<ParamField body="nombre" type="string" required>
+  Name of the camera site location
+</ParamField>
+
+<ParamField body="localidad" type="string" required>
+  Locality for the site
+</ParamField>
+
+<ParamField body="destino_id" type="integer" required>
+  ID of the associated dependency
+</ParamField>
+
+<ParamField body="activo" type="boolean" required>
+  Whether the site is active
+</ParamField>
+
+<ParamField body="latitud" type="decimal">
+  Latitude coordinate
+</ParamField>
+
+<ParamField body="longitud" type="decimal">
+  Longitude coordinate
+</ParamField>
+
+<ParamField body="cartel" type="string">
+  Whether the site has signage ("SI" or "NO")
+</ParamField>
+
+<ParamField body="observaciones" type="text">
+  Additional notes
+</ParamField>
+
+### Example Request
+
+<CodeGroup>
+
+```bash cURL
+curl -X PUT "https://your-domain.com/sitios/1" \
+  -H "Content-Type: application/json" \
+  -H "Cookie: your-session-cookie" \
+  -d '{
+    "nombre": "Sitio Plaza 1° de Mayo - Actualizado",
+    "localidad": "Paraná",
+    "latitud": "-31.7413",
+    "longitud": "-60.5115",
+    "cartel": "SI",
+    "activo": true,
+    "destino_id": 1,
+    "observaciones": "Cámara reubicada al poste sur"
+  }'
+```
+
+```php PHP
+$sitio = Sitio::find(1);
+$sitio->update([
+    'nombre' => 'Sitio Plaza 1° de Mayo - Actualizado',
+    'observaciones' => 'Cámara reubicada al poste sur'
+]);
+```
+
+</CodeGroup>
+
+### Response
+
+On success, redirects to `/sitios` (index page).
+
+## Delete Site
+
+Delete a camera site location.
+
+```http
+DELETE /sitios/{id}
+```
+
+### Required Permissions
+
+- `borrar-sitio`
+
+### Path Parameters
+
+<ParamField path="id" type="integer" required>
+  The ID of the site to delete
+</ParamField>
+
+### Response
+
+On success, redirects to `/sitios` (index page).
+
+<Note>
+  Deleting a site will also affect related records (cameras, audits) due to foreign key relationships. Ensure you understand the cascade behavior before deleting.
+</Note>
+
+## Export Sites to Excel
+
+Export all sites to an Excel file.
+
+```http
+GET /sitios/export
+```
+
+### Response
+
+Downloads an Excel file named `ListadoSitios_{timestamp}.xlsx` containing all site records.
+
+### Example Request
+
+<CodeGroup>
+
+```bash cURL
+curl -X GET "https://your-domain.com/sitios/export" \
+  -H "Cookie: your-session-cookie" \
+  -o sites_export.xlsx
+```
+
+```php PHP
+return Excel::download(new SitiosExport, 'ListadoSitios_' . Carbon::now() . '.xlsx');
+```
+
+</CodeGroup>
+
+## Validation Rules
+
+When creating or updating sites, the following validation rules apply:
+
+- **nombre**: Required string field
+- **localidad**: Required, must be one of the valid localities (not "Seleccionar localidad")
+- **destino_id**: Required, must reference an existing dependency (not "Seleccionar la dependencia")
+- **activo**: Required boolean value
+- **latitud**: Optional decimal value
+- **longitud**: Optional decimal value
+- **cartel**: Optional, "SI" or "NO"
+- **observaciones**: Optional text field
+
+## Error Codes
+
+<ResponseField name="422" type="Validation Error">
+  Validation failed. Check the error messages for specific field errors.
+</ResponseField>
+
+<ResponseField name="403" type="Forbidden">
+  You don't have the required permission to perform this action.
+</ResponseField>
+
+<ResponseField name="500" type="Server Error">
+  Database transaction failed. Returns JSON with error details:
+  ```json
+  {
+    "result": "ERROR",
+    "message": "Detailed error message"
+  }
+  ```
+</ResponseField>
+
+## Relationships
+
+Sites have the following relationships:
+
+- **destino** (belongs to): Associated dependency/department
+- **camaras** (has many): Cameras installed at this site
+- **auditorias** (has many): Audit records for this site
+
+## Statistics
+
+The index page provides statistics broken down by locality:
+
+- Total sites in Paraná
+- Total sites in Colonia Avellaneda
+- Total sites in San Benito
+- Total sites in Oro Verde

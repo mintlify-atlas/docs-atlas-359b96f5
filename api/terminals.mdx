@@ -1,0 +1,364 @@
+---
+title: Terminals (Tipo Terminales)
+description: Manage radio terminal types and models with CRUD operations for equipment catalog
+---
+
+## Overview
+
+The Terminals API allows you to manage radio terminal types and models used in the system. You can create, read, update, and delete terminal type records including their brand, model, usage type, and optional images.
+
+## List Terminals
+
+Retrieve a paginated list of terminal types.
+
+```http
+GET /terminales
+```
+
+### Response
+
+Returns a paginated list of terminals (20 per page).
+
+<ResponseField name="id" type="integer">
+  Unique identifier for the terminal type
+</ResponseField>
+
+<ResponseField name="tipo_uso_id" type="integer" required>
+  Foreign key reference to the usage type (TipoUso)
+</ResponseField>
+
+<ResponseField name="marca" type="string" required>
+  Brand/manufacturer of the terminal
+</ResponseField>
+
+<ResponseField name="modelo" type="string" required>
+  Model name or number of the terminal
+</ResponseField>
+
+<ResponseField name="observaciones" type="text">
+  Additional notes or observations about the terminal type
+</ResponseField>
+
+<ResponseField name="imagen" type="string">
+  File path to the terminal image (stored in images/uploads/)
+</ResponseField>
+
+<ResponseField name="tipo_uso" type="object">
+  Associated usage type object with its details
+</ResponseField>
+
+### Example Request
+
+<CodeGroup>
+
+```bash cURL
+curl -X GET "https://your-domain.com/terminales" \
+  -H "Cookie: your-session-cookie"
+```
+
+```php PHP
+$terminales = TipoTerminal::paginate(20);
+```
+
+</CodeGroup>
+
+## Create Terminal Type
+
+Create a new terminal type with optional image upload.
+
+```http
+POST /terminales
+```
+
+### Required Permissions
+
+- `crear-terminal`
+
+### Request Body
+
+<ParamField body="tipo_uso" type="string" required>
+  Usage type for the terminal. Must match an existing uso value in the tipo_uso table (cannot be "Selecciona su uso").
+</ParamField>
+
+<ParamField body="marca" type="string" required>
+  Brand or manufacturer name of the terminal
+</ParamField>
+
+<ParamField body="modelo" type="string" required>
+  Model name or number
+</ParamField>
+
+<ParamField body="observaciones" type="text">
+  Additional notes or observations about this terminal type
+</ParamField>
+
+<ParamField body="imagen" type="file">
+  Image file for the terminal. If provided, the file will be uploaded to `images/uploads/` with a timestamp prefix.
+</ParamField>
+
+### Example Request
+
+<CodeGroup>
+
+```bash cURL
+curl -X POST "https://your-domain.com/terminales" \
+  -H "Cookie: your-session-cookie" \
+  -F "tipo_uso=Móvil" \
+  -F "marca=Motorola" \
+  -F "modelo=DGP8550e" \
+  -F "observaciones=Radio digital con GPS" \
+  -F "imagen=@/path/to/terminal-image.jpg"
+```
+
+```php PHP
+$terminal = new TipoTerminal();
+$terminal->tipo_uso_id = $uso->id;
+$terminal->marca = 'Motorola';
+$terminal->modelo = 'DGP8550e';
+$terminal->observaciones = 'Radio digital con GPS';
+
+if($request->hasFile('imagen')){
+    $file = $request->file('imagen');
+    $destinationPath = 'images/uploads/';
+    $filename = time() . '-' . $file->getClientOriginalName();
+    $request->file('imagen')->move($destinationPath, $filename);
+    $terminal->imagen = $destinationPath . $filename;
+}
+
+$terminal->save();
+```
+
+</CodeGroup>
+
+### Response
+
+On success, redirects to `/terminales` (index page).
+
+### Error Responses
+
+<ResponseField name="result" type="string">
+  "ERROR" if the operation fails
+</ResponseField>
+
+<ResponseField name="message" type="string">
+  Detailed error message from the exception
+</ResponseField>
+
+<Note>
+  All create and update operations are wrapped in database transactions. If any error occurs, the transaction is rolled back to maintain data integrity.
+</Note>
+
+## Create Form
+
+Retrieve the form for creating a new terminal type.
+
+```http
+GET /terminales/create
+```
+
+### Required Permissions
+
+- `crear-terminal`
+
+### Response
+
+Returns a view with available usage types (tipo_uso) for the dropdown.
+
+## Edit Terminal Type
+
+Retrieve terminal type details for editing.
+
+```http
+GET /terminales/{id}/edit
+```
+
+### Required Permissions
+
+- `editar-terminal`
+
+### Path Parameters
+
+<ParamField path="id" type="integer" required>
+  The ID of the terminal type to edit
+</ParamField>
+
+### Response
+
+Returns a view with the terminal data and available usage types.
+
+## Update Terminal Type
+
+Update an existing terminal type.
+
+```http
+PUT /terminales/{id}
+```
+
+### Required Permissions
+
+- `editar-terminal`
+
+### Path Parameters
+
+<ParamField path="id" type="integer" required>
+  The ID of the terminal type to update
+</ParamField>
+
+### Request Body
+
+<ParamField body="tipo_uso" type="string" required>
+  Usage type for the terminal (must exist in tipo_uso table)
+</ParamField>
+
+<ParamField body="marca" type="string" required>
+  Brand or manufacturer name
+</ParamField>
+
+<ParamField body="modelo" type="string" required>
+  Model name or number
+</ParamField>
+
+<ParamField body="observaciones" type="text">
+  Additional notes
+</ParamField>
+
+<ParamField body="imagen" type="file">
+  New image file. If not provided, the existing image is preserved.
+</ParamField>
+
+### Example Request
+
+<CodeGroup>
+
+```bash cURL
+curl -X PUT "https://your-domain.com/terminales/1" \
+  -H "Cookie: your-session-cookie" \
+  -F "tipo_uso=Móvil" \
+  -F "marca=Motorola" \
+  -F "modelo=DGP8550e Plus" \
+  -F "observaciones=Radio digital con GPS actualizado" \
+  -F "imagen=@/path/to/new-image.jpg"
+```
+
+```php PHP
+$terminal = TipoTerminal::find(1);
+$uso = TipoUso::where('uso', 'Móvil')->first();
+
+$terminal->tipo_uso_id = $uso->id;
+$terminal->marca = 'Motorola';
+$terminal->modelo = 'DGP8550e Plus';
+
+if($request->hasFile('imagen')){
+    $file = $request->file('imagen');
+    $destinationPath = 'images/uploads/';
+    $filename = time() . '-' . $file->getClientOriginalName();
+    $request->file('imagen')->move($destinationPath, $filename);
+    $terminal->imagen = $destinationPath . $filename;
+}
+
+$terminal->save();
+```
+
+</CodeGroup>
+
+### Response
+
+On success, redirects to `/terminales` (index page).
+
+<Note>
+  When updating, if no new image is provided, the system preserves the existing image path. Only upload a new image if you want to replace the current one.
+</Note>
+
+## Delete Terminal Type
+
+Delete a terminal type from the system.
+
+```http
+DELETE /terminales/{id}
+```
+
+### Required Permissions
+
+- `borrar-terminal`
+
+### Path Parameters
+
+<ParamField path="id" type="integer" required>
+  The ID of the terminal type to delete
+</ParamField>
+
+### Response
+
+On success, redirects to `/terminales` (index page).
+
+<Note>
+  Be careful when deleting terminal types that are referenced by equipment records. This may cause foreign key constraint violations.
+</Note>
+
+## Validation Rules
+
+When creating or updating terminal types, the following validation rules apply:
+
+- **tipo_uso**: Required, cannot be "Selecciona su uso"
+- **marca**: Required string field
+- **modelo**: Required string field
+- **observaciones**: Optional text field
+- **imagen**: Optional file upload
+
+## Image Upload
+
+The image upload functionality has the following characteristics:
+
+- Images are stored in the `images/uploads/` directory
+- Uploaded files are prefixed with a Unix timestamp to ensure uniqueness
+- Format: `{timestamp}-{original-filename}`
+- Example: `1710435200-motorola-dgp8550e.jpg`
+- Only uploaded when a file is present in the request
+
+### Image Storage Example
+
+```php
+if($request->hasFile('imagen')){
+    $file = $request->file('imagen');
+    $destinationPath = 'images/uploads/';
+    $filename = time() . '-' . $file->getClientOriginalName();
+    $uploadSuccess = $request->file('imagen')->move($destinationPath, $filename);
+    $terminal->imagen = $destinationPath . $filename;
+}
+```
+
+## Error Codes
+
+<ResponseField name="422" type="Validation Error">
+  Validation failed. Common errors include:
+  - Missing required fields (marca, modelo, tipo_uso)
+  - Invalid tipo_uso selection
+</ResponseField>
+
+<ResponseField name="403" type="Forbidden">
+  You don't have the required permission to perform this action.
+</ResponseField>
+
+<ResponseField name="500" type="Server Error">
+  Database transaction failed or file upload error. Returns JSON with error details:
+  ```json
+  {
+    "result": "ERROR",
+    "message": "Detailed error message"
+  }
+  ```
+</ResponseField>
+
+## Relationships
+
+Terminal types have the following relationships:
+
+- **tipo_uso** (belongs to): Associated usage type that categorizes the terminal
+- **equipos** (has many): Equipment records that use this terminal type
+
+## Controller Source
+
+You can find the implementation in:
+- Controller: `app/Http/Controllers/TipoTerminalController.php`
+- Model: `app/Models/TipoTerminal.php`
+- Table: `tipo_terminales`

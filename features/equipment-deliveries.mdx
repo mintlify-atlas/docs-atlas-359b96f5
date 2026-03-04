@@ -1,0 +1,267 @@
+---
+title: Equipment Deliveries
+description: Track and manage equipment loans, assignments, and returns with the entrega-equipos system
+---
+
+The Equipment Deliveries system allows you to manage the complete lifecycle of equipment loans to police departments and units, including delivery documentation, returns, and lost equipment tracking.
+
+## Overview
+
+The equipment delivery system tracks portable radio equipment assignments to different police departments (dependencias). It generates official delivery documents, monitors active loans, and manages partial returns.
+
+<Info>
+The system automatically updates equipment status in the fleet database when items are delivered or returned.
+</Info>
+
+## Creating a New Delivery
+
+<Steps>
+  <Step title="Access the delivery form">
+    Navigate to the equipment deliveries section and click "Create New Delivery"
+  </Step>
+  
+  <Step title="Enter delivery information">
+    Fill in the required fields:
+    - **Delivery date and time** - When the equipment is being handed over
+    - **Department (dependencia)** - The receiving police unit
+    - **Operational reason** - Purpose for the equipment assignment
+    - **Receiving personnel** - Name and badge number (legajo)
+    - **Delivering personnel** - Name and badge number
+  </Step>
+  
+  <Step title="Select equipment">
+    Choose equipment from the available portable units. The system shows:
+    - TEI (equipment identifier)
+    - ISSI (radio identifier)
+    - Battery serial numbers
+    - Current availability status
+  </Step>
+  
+  <Step title="Add accessories (optional)">
+    Include additional items:
+    - Charging cradles (cunas cargadoras) with brand and serial numbers
+    - Transformers (quantity only)
+    - Second batteries (if applicable)
+  </Step>
+  
+  <Step title="Attach documentation">
+    Upload up to 3 images and 1 additional file (PDF, DOC, ZIP, etc.)
+  </Step>
+</Steps>
+
+## Code Example: Creating a Delivery
+
+The system validates and creates delivery records with database transactions:
+
+```php
+// EntregasEquiposController.php:76-142
+$entrega = EntregaEquipo::create([
+    'fecha_entrega' => $request->fecha_entrega,
+    'hora_entrega' => $request->hora_entrega,
+    'dependencia' => $request->dependencia,
+    'personal_receptor' => $request->personal_receptor,
+    'legajo_receptor' => $request->legajo_receptor,
+    'motivo_operativo' => $request->motivo_operativo,
+    'con_2_baterias' => $request->has('con_segunda_bateria'),
+    'usuario_creador' => auth()->user()->name
+]);
+
+// Link equipment to delivery
+foreach ($request->equipos_seleccionados as $equipoId) {
+    DetalleEntregaEquipo::create([
+        'entrega_id' => $entrega->id,
+        'equipo_id' => $equipoId
+    ]);
+    
+    // Update equipment status
+    FlotaGeneral::find($equipoId)->update(['estado' => 'entregado']);
+}
+```
+
+## Generating Delivery Documents
+
+The system automatically generates Word documents using templates based on the delivery configuration:
+
+<CardGroup cols={2}>
+  <Card title="Standard Template" icon="file-word">
+    Basic equipment delivery with one battery per unit
+  </Card>
+  
+  <Card title="Two Battery Template" icon="battery-full">
+    For equipment with primary and secondary batteries
+  </Card>
+  
+  <Card title="Accessories Template" icon="plug">
+    Includes charging cradles and transformers
+  </Card>
+  
+  <Card title="Combined Template" icon="box">
+    Two batteries plus accessories
+  </Card>
+</CardGroup>
+
+### Document Generation Process
+
+```php
+// EntregasEquiposController.php:389-418
+$templateName = $tieneAccesorios
+    ? 'template_entrega_equipos_cuna_trafo.docx'
+    : 'template_entrega_equipos.docx';
+
+$templateProcessor = new TemplateProcessor($templatePath);
+
+// Replace template variables
+$templateProcessor->setValue('DIA', $entrega->fecha_entrega->format('d'));
+$templateProcessor->setValue('MES', $mesEspanol);
+$templateProcessor->setValue('DEPENDENCIA', $entrega->dependencia);
+$templateProcessor->setValue('CANTIDAD_EQUIPOS', $cantidadEquipos);
+```
+
+<Note>
+Documents are automatically saved to the network share at `\\193.169.1.247\Comp_Tecnica$\01-Técnica 911 Doc\` and downloaded locally.
+</Note>
+
+## Managing Returns
+
+The system supports **partial returns**, allowing equipment to be returned in batches while maintaining a complete audit trail.
+
+### Processing a Return
+
+<Steps>
+  <Step title="View active delivery">
+    Open the delivery record showing equipment currently on loan
+  </Step>
+  
+  <Step title="Select items to return">
+    Choose which equipment is being returned from the pending list
+  </Step>
+  
+  <Step title="Enter return details">
+    Record:
+    - Return date and time
+    - Person returning the equipment
+    - Observations
+    - Supporting images or documents
+  </Step>
+  
+  <Step title="Confirm return">
+    The system automatically:
+    - Updates equipment status to "available"
+    - Links the return to the original delivery
+    - Updates the delivery status (active/partially returned/fully returned)
+  </Step>
+</Steps>
+
+```php
+// EntregasEquiposController.php:874-962
+$devolucion = DevolucionEquipo::create([
+    'entrega_id' => $entrega->id,
+    'fecha_devolucion' => $request->fecha_devolucion,
+    'hora_devolucion' => $request->hora_devolucion,
+    'personal_devuelve' => $request->personal_devuelve
+]);
+
+// Update equipment status
+foreach ($request->equipos_devolver as $equipoId) {
+    DetalleDevolucionEquipo::create([
+        'devolucion_id' => $devolucion->id,
+        'equipo_id' => $equipoId
+    ]);
+}
+
+// Automatically update delivery state
+$entrega->actualizarEstado();
+```
+
+## Tracking Lost Equipment
+
+Report equipment as lost when items are not returned or cannot be located.
+
+<Warning>
+Marking equipment as lost changes its status permanently. This action should only be performed after proper verification.
+</Warning>
+
+### Reporting Lost Equipment
+
+Use the "Report Lost" function from the delivery detail page:
+
+```php
+// EntregasEquiposController.php:1068-1102
+foreach ($equiposPerdidos as $equipoId) {
+    FlotaGeneral::find($equipoId)->update(['estado' => 'perdido']);
+}
+
+$entrega->update([
+    'estado' => 'perdido',
+    'observaciones' => $entrega->observaciones . 
+        "\n\nReportado como perdido el: " . now()->format('d/m/Y H:i') .
+        "\nMotivo: " . $request->motivo_perdida
+]);
+```
+
+## Searching and Filtering
+
+Search deliveries using multiple criteria:
+
+- **TEI** - Equipment identifier
+- **ISSI** - Radio identifier  
+- **Date** - Delivery date
+- **Department** - Receiving unit
+
+```php
+// EntregasEquiposController.php:29-53
+if ($request->filled('tei')) {
+    $query->buscarPorTei($request->tei);
+}
+
+if ($request->filled('issi')) {
+    $query->buscarPorIssi($request->issi);
+}
+
+if ($request->filled('dependencia')) {
+    $query->buscarPorDependencia($request->dependencia);
+}
+
+$entregas = $query->orderBy('created_at', 'desc')->paginate(15);
+```
+
+## Routes
+
+The equipment delivery system uses the following routes:
+
+| Route | Method | Purpose |
+|-------|--------|---------|
+| `/entrega-equipos` | GET | List all deliveries |
+| `/entrega-equipos/create` | GET | Show delivery creation form |
+| `/entrega-equipos` | POST | Store new delivery |
+| `/entrega-equipos/{id}` | GET | View delivery details |
+| `/entrega-equipos/{id}/edit` | GET | Edit delivery |
+| `/entrega-equipos/{id}/documento` | GET | Generate delivery document |
+| `/entrega-equipos/{id}/devolver` | GET | Show return form |
+| `/entrega-equipos/{id}/procesar-devolucion` | POST | Process equipment return |
+| `/entrega-equipos/{id}/reportar-perdido` | PATCH | Report equipment as lost |
+
+<Info>
+All routes require authentication and appropriate permissions (`crear-entrega-equipos`, `ver-menu-entregas`)
+</Info>
+
+## Best Practices
+
+1. **Always verify equipment** - Confirm TEI and ISSI numbers match physical devices
+2. **Document everything** - Upload photos of equipment condition at delivery and return
+3. **Use operational reasons** - Provide clear justification for equipment assignments
+4. **Track accessories** - Record all charging cradles and transformers
+5. **Process returns promptly** - Update the system as soon as equipment is returned
+6. **Regular audits** - Review active deliveries to identify overdue equipment
+
+## Related Features
+
+<CardGroup cols={2}>
+  <Card title="Bodycam Deliveries" icon="video" href="/features/bodycam-deliveries">
+    Similar system for managing bodycam checkouts
+  </Card>
+  
+  <Card title="Fleet Management" icon="walkie-talkie">
+    Main equipment inventory and tracking system
+  </Card>
+</CardGroup>

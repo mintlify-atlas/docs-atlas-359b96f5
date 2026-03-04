@@ -1,0 +1,366 @@
+---
+title: Bodycam Deliveries
+description: Manage bodycam checkouts and returns with the entrega-bodycams system
+---
+
+The Bodycam Deliveries system allows you to track the assignment and return of body-worn cameras to police personnel, maintaining a complete audit trail of all bodycam movements.
+
+## Overview
+
+Similar to equipment deliveries, the bodycam system manages the lifecycle of bodycam assignments including:
+
+- Checkout documentation with personnel details
+- Automatic status updates for bodycam inventory
+- Partial and full returns
+- Supporting documentation (images and files)
+- Official delivery document generation
+
+<Info>
+Bodycams are tracked separately from radio equipment with their own inventory system including IMEI, serial numbers, and battery tracking.
+</Info>
+
+## Creating a Bodycam Delivery
+
+<Steps>
+  <Step title="Navigate to bodycam deliveries">
+    Access the bodycam delivery section from the main menu
+  </Step>
+  
+  <Step title="Complete delivery information">
+    Enter the required details:
+    - **Delivery date and time**
+    - **Department (dependencia)** - Receiving police unit
+    - **Operational reason** - Purpose of assignment
+    - **Personnel details** - Names and badge numbers for both receiver and deliverer
+  </Step>
+  
+  <Step title="Select available bodycams">
+    Choose from bodycams with status "disponible" (available):
+    - **Code** - Internal identifier
+    - **IMEI** - Device unique identifier
+    - **Serial number**
+    - **Battery number**
+  </Step>
+  
+  <Step title="Attach documentation">
+    Upload up to 3 images and 1 additional file for record-keeping
+  </Step>
+  
+  <Step title="Submit delivery">
+    The system will:
+    - Create the delivery record
+    - Update bodycam status to "entregada" (delivered)
+    - Generate the delivery document
+  </Step>
+</Steps>
+
+## Code Example: Bodycam Delivery Creation
+
+```php
+// EntregasBodycamsController.php:67-139
+$validated = $request->validate([
+    'fecha_entrega' => 'required|date',
+    'hora_entrega' => 'required',
+    'dependencia' => 'required|string|max:255',
+    'motivo_operativo' => 'required|string',
+    'bodycams_seleccionadas' => 'required|array|min:1',
+    'bodycams_seleccionadas.*' => 'exists:bodycams,id'
+]);
+
+DB::beginTransaction();
+
+$entrega = EntregaBodycam::create([
+    'fecha_entrega' => $request->fecha_entrega,
+    'hora_entrega' => $request->hora_entrega,
+    'dependencia' => $request->dependencia,
+    'personal_receptor' => $request->personal_receptor ?? '',
+    'motivo_operativo' => $request->motivo_operativo,
+    'usuario_creador' => auth()->user()->name
+]);
+
+// Link bodycams and update status
+foreach ($request->bodycams_seleccionadas as $bodycamId) {
+    DetalleEntregaBodycam::create([
+        'entrega_id' => $entrega->id,
+        'bodycam_id' => $bodycamId
+    ]);
+    
+    Bodycam::find($bodycamId)->update(['estado' => 'entregada']);
+}
+
+DB::commit();
+```
+
+<Warning>
+All bodycam deliveries are wrapped in database transactions to ensure data consistency. If any step fails, the entire operation is rolled back.
+</Warning>
+
+## Viewing Delivery Details
+
+The delivery detail page shows:
+
+<CardGroup cols={2}>
+  <Card title="Delivery Information" icon="clipboard-list">
+    Date, time, department, operational reason
+  </Card>
+  
+  <Card title="Personnel Records" icon="user-shield">
+    Names and badge numbers of receiver and deliverer
+  </Card>
+  
+  <Card title="Bodycam List" icon="video">
+    All assigned bodycams with IMEI and serial numbers
+  </Card>
+  
+  <Card title="Return History" icon="clock-rotate-left">
+    All partial and full returns linked to this delivery
+  </Card>
+</CardGroup>
+
+```php
+// EntregasBodycamsController.php:142-151
+$entrega = EntregaBodycam::with([
+    'bodycams',
+    'detalleEntregas.bodycam',
+    'devoluciones'
+])->findOrFail($id);
+
+return view('entregas.entregas-bodycams.show', compact('entrega'));
+```
+
+## Document Generation
+
+The system generates standardized Word documents for bodycam deliveries using the template `template_entrega_bodycams.docx`.
+
+### Template Variables
+
+The document includes:
+
+- **Header** - Date (day/month/year), time, department name
+- **Quantity** - Number of bodycams (numeric and written)
+- **Device details** - Brand, model
+- **Equipment table** - Code, IMEI, serial number, battery number for each bodycam
+- **Personnel** - Receiver and deliverer information
+- **Operational reason** - Purpose of assignment
+
+```php
+// EntregasBodycamsController.php:275-356
+$templateProcessor = new TemplateProcessor($templatePath);
+
+// Replace header variables
+$templateProcessor->setValue('DIA', $entrega->fecha_entrega->format('d'));
+$templateProcessor->setValue('MES', $mesEspanol);
+$templateProcessor->setValue('HORA', Carbon::parse($entrega->hora_entrega)->format('H:i'));
+
+// Device information
+$cantidadBodycams = $entrega->bodycams->count();
+$templateProcessor->setValue('CANTIDAD_BODYCAMS', $cantidadBodycams);
+$templateProcessor->setValue('CANTIDAD_BODYCAMS_LETRAS', 
+    $this->numeroALetras($cantidadBodycams));
+
+// Build bodycam table data
+$bodycamsData = [];
+$contador = 1;
+
+foreach ($entrega->bodycams as $bodycam) {
+    $bodycamsData[] = [
+        'NUMERO' => $contador++,
+        'CODIGO' => $bodycam->codigo ?? 'N/A',
+        'IMEI' => $bodycam->imei ?? 'N/A',
+        'SERIE' => $bodycam->numero_serie ?? 'N/A',
+        'BATERIA' => $bodycam->numero_bateria ?? 'N/A'
+    ];
+}
+
+$templateProcessor->cloneRowAndSetValues('NUMERO', $bodycamsData);
+```
+
+<Note>
+Documents are automatically saved to: `\\193.169.1.247\Comp_Tecnica$\01-Técnica 911 Doc\01-Documentos\U.M. - Acontecimientos - Eventos\Entregas Bodycams CAR911`
+</Note>
+
+## Processing Returns
+
+Bodycams can be returned individually or in groups while maintaining the connection to the original delivery.
+
+### Return Workflow
+
+<Steps>
+  <Step title="Access return form">
+    From the delivery detail page, click "Return Bodycams"
+  </Step>
+  
+  <Step title="Select bodycams to return">
+    The system shows only bodycams that are still pending return
+  </Step>
+  
+  <Step title="Enter return details">
+    Provide:
+    - Return date and time
+    - Person returning (name and badge)
+    - Observations
+    - Supporting images or documents
+  </Step>
+  
+  <Step title="Confirm return">
+    The system processes the return and updates all statuses
+  </Step>
+</Steps>
+
+```php
+// EntregasBodycamsController.php:422-498
+$devolucion = DevolucionBodycam::create([
+    'entrega_id' => $entrega->id,
+    'fecha_devolucion' => $request->fecha_devolucion,
+    'hora_devolucion' => $request->hora_devolucion,
+    'personal_devuelve' => $request->personal_devuelve,
+    'observaciones' => $request->observaciones,
+    'usuario_creador' => auth()->user()->name
+]);
+
+// Create return details and update bodycam status
+foreach ($request->bodycams_devolver as $bodycamId) {
+    DetalleDevolucionBodycam::create([
+        'devolucion_id' => $devolucion->id,
+        'bodycam_id' => $bodycamId
+    ]);
+    
+    // Return bodycam to available status
+    Bodycam::find($bodycamId)->update(['estado' => 'disponible']);
+}
+
+// Update delivery state (active/partial/complete)
+$entrega->actualizarEstado();
+```
+
+## Searching Deliveries
+
+Filter bodycam deliveries using multiple criteria:
+
+| Filter | Description |
+|--------|-------------|
+| **Código** | Search by bodycam code |
+| **Número de Serie** | Find by serial number |
+| **Fecha** | Filter by delivery date |
+| **Dependencia** | Filter by department |
+
+```php
+// EntregasBodycamsController.php:28-51
+$query = EntregaBodycam::with(['bodycams', 'detalleEntregas']);
+
+if ($request->filled('codigo')) {
+    $query->buscarPorCodigo($request->codigo);
+}
+
+if ($request->filled('numero_serie')) {
+    $query->buscarPorSerie($request->numero_serie);
+}
+
+if ($request->filled('fecha')) {
+    $query->buscarPorFecha($request->fecha);
+}
+
+if ($request->filled('dependencia')) {
+    $query->buscarPorDependencia($request->dependencia);
+}
+
+$entregas = $query->orderBy('created_at', 'desc')->paginate(15);
+```
+
+## Editing Deliveries
+
+You can modify delivery details before or after bodycams are returned:
+
+<Warning>
+When editing bodycam selections, previously assigned bodycams that are removed will be returned to "disponible" status.
+</Warning>
+
+```php
+// EntregasBodycamsController.php:240-258
+// Release previous bodycams
+$bodycamsAnteriores = $entrega->bodycams->pluck('id')->toArray();
+foreach ($bodycamsAnteriores as $bodycamId) {
+    if (!in_array($bodycamId, $request->bodycams_seleccionadas)) {
+        Bodycam::find($bodycamId)->update(['estado' => 'disponible']);
+    }
+}
+
+// Delete old details and create new ones
+$entrega->detalleEntregas()->delete();
+
+foreach ($request->bodycams_seleccionadas as $bodycamId) {
+    DetalleEntregaBodycam::create([
+        'entrega_id' => $entrega->id,
+        'bodycam_id' => $bodycamId
+    ]);
+    
+    Bodycam::find($bodycamId)->update(['estado' => 'entregada']);
+}
+```
+
+## Routes
+
+The bodycam delivery system uses these routes:
+
+| Route | Method | Purpose |
+|-------|--------|---------|
+| `/entrega-bodycams` | GET | List all bodycam deliveries |
+| `/entrega-bodycams/create` | GET | Show delivery creation form |
+| `/entrega-bodycams` | POST | Store new delivery |
+| `/entrega-bodycams/{id}` | GET | View delivery details |
+| `/entrega-bodycams/{id}/edit` | GET | Edit delivery |
+| `/entrega-bodycams/{id}` | PUT/PATCH | Update delivery |
+| `/entrega-bodycams/{id}` | DELETE | Delete delivery |
+| `/entrega-bodycams/{id}/documento` | GET | Generate delivery document |
+| `/entrega-bodycams/{id}/devolver` | GET | Show return form |
+| `/entrega-bodycams/{id}/procesar-devolucion` | POST | Process bodycam return |
+
+<Info>
+Routes require permissions: `crear-entrega-bodycams`, `ver-menu-entregas-bodycams`, `ver-reportes-entregas-bodycams`
+</Info>
+
+## Deleting Deliveries
+
+When deleting a delivery, the system automatically releases all bodycams back to available status:
+
+```php
+// EntregasBodycamsController.php:501-525
+try {
+    $entrega = EntregaBodycam::findOrFail($id);
+    
+    DB::beginTransaction();
+    
+    // Release bodycams before deleting
+    foreach ($entrega->bodycams as $bodycam) {
+        $bodycam->update(['estado' => 'disponible']);
+    }
+    
+    $entrega->delete();
+    
+    DB::commit();
+    
+    return redirect()->route('entrega-bodycams.index')
+        ->with('success', 'Acta de entrega eliminada exitosamente');
+}
+```
+
+## Best Practices
+
+1. **Verify IMEI numbers** - Confirm device identifiers before delivery
+2. **Check battery condition** - Note battery serial numbers and condition
+3. **Use clear operational reasons** - Document why bodycams are being assigned
+4. **Process returns immediately** - Update system as soon as devices come back
+5. **Attach photos** - Document device condition at both delivery and return
+6. **Review pending returns** - Regularly audit deliveries with unreturned bodycams
+
+## Related Features
+
+<CardGroup cols={2}>
+  <Card title="Equipment Deliveries" icon="walkie-talkie" href="/features/equipment-deliveries">
+    Similar system for managing radio equipment loans
+  </Card>
+  
+  <Card title="Bodycam Management" icon="video">
+    Main bodycam inventory and tracking system
+  </Card>
+</CardGroup>
